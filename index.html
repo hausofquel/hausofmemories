@@ -583,8 +583,15 @@
 <style>
   .nav-wordmark .wm-letter {
     display: inline-block;
-    transition: opacity 0.35s ease, transform 0.35s ease, width 0.35s ease, letter-spacing 0.35s ease;
-    will-change: transform, opacity, width;
+    transition: max-width 0.4s ease, opacity 0.4s ease, letter-spacing 0.4s ease;
+    max-width: 1.2em;
+    overflow: hidden;
+    vertical-align: bottom;
+  }
+  .nav-wordmark .wm-letter.collapsed {
+    max-width: 0;
+    opacity: 0;
+    letter-spacing: 0;
   }
 </style>
 
@@ -593,73 +600,47 @@
   const el = document.getElementById('nav-wordmark');
   if (!el) return;
 
-  // HAUSOFMEMORIES — which letters to keep for HOME
-  // H(0) O(4) M(9) E(11) — indices in 'HAUSOFMEMORIES'
-  const full = 'HAUSOFMEMORIES'.split('');
-  const keepIndices = new Set([0, 4, 9, 11]); // H, O, M, E
+  // H=0 A=1 U=2 S=3 O=4 F=5 M=6 E=7 M=8 O=9 R=10 I=11 E=12 S=13
+  // Keep H(0) O(4) M(6) E(7) for HOME
+  const keepIndices = new Set([0, 4, 6, 7]);
+  const letters = 'HAUSOFMEMORIES'.split('');
 
-  // Build spans
   el.innerHTML = '';
-  const spans = full.map((char, i) => {
+  const spans = letters.map((char, i) => {
     const s = document.createElement('span');
     s.className = 'wm-letter';
     s.textContent = char;
-    s.dataset.idx = i;
     el.appendChild(s);
     return s;
   });
 
   function collapseToHome() {
-    // Fade + collapse non-HOME letters
     spans.forEach((s, i) => {
-      if (!keepIndices.has(i)) {
-        s.style.opacity = '0';
-        s.style.width = '0';
-        s.style.overflow = 'hidden';
-        s.style.letterSpacing = '0';
-        s.style.marginRight = '0';
-        s.style.transform = 'scaleX(0)';
-        s.style.display = 'inline-block';
-      }
+      if (!keepIndices.has(i)) s.classList.add('collapsed');
     });
-    // After collapse, widen spacing on HOME letters for breathing room
+    // Widen spacing on H O M E after collapse
     setTimeout(() => {
-      keepIndices.forEach(i => {
-        spans[i].style.letterSpacing = '0.32em';
-      });
-    }, 380);
+      keepIndices.forEach(i => spans[i].style.letterSpacing = '0.38em');
+    }, 420);
   }
 
   function expandToFull() {
-    // First reset HOME spacing
-    keepIndices.forEach(i => {
-      spans[i].style.letterSpacing = '0.22em';
-    });
-    // Then fan all letters back in
+    keepIndices.forEach(i => spans[i].style.letterSpacing = '');
     setTimeout(() => {
       spans.forEach((s, i) => {
-        if (!keepIndices.has(i)) {
-          s.style.opacity = '1';
-          s.style.width = '';
-          s.style.overflow = '';
-          s.style.letterSpacing = '0.22em';
-          s.style.marginRight = '';
-          s.style.transform = 'scaleX(1)';
-        }
+        if (!keepIndices.has(i)) s.classList.remove('collapsed');
       });
     }, 60);
   }
 
-  // Cycle: wait 8s → collapse (0.4s) → hold HOME 2s → expand (0.4s) → repeat
   function runCycle() {
     collapseToHome();
     setTimeout(() => {
       expandToFull();
-      setTimeout(runCycle, 8000); // 8s delay before next cycle
-    }, 2400); // hold HOME for 2s
+      setTimeout(runCycle, 8000);
+    }, 2600);
   }
 
-  // Initial 8s delay before first animation
   setTimeout(runCycle, 8000);
 })();
 </script>
