@@ -9,6 +9,7 @@
   <!-- Fonts: Clash Display (display) + Satoshi (body) from Fontshare -->
   <link href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&f[]=satoshi@400,500,700&display=swap" rel="stylesheet" />
 
+
   <link rel="stylesheet" href="base.css" />
   <link rel="stylesheet" href="style.css" />
 
@@ -52,6 +53,7 @@
       letter-spacing: 0.08em;
       text-transform: uppercase;
       display: block;
+      /* Permanent Obsession-style chromatic bloom */
       text-shadow:
         4px 0 6px rgba(255, 160, 60, 0.55),
         -4px 0 6px rgba(60, 160, 255, 0.45),
@@ -101,6 +103,7 @@
 
     /* ── Glitch Effect on Masthead ── */
     @keyframes glitch-main {
+      /* Baseline: permanent warm/cool chromatic bloom */
       0%, 100% {
         transform: translateX(0);
         filter: blur(0);
@@ -109,6 +112,7 @@
           -4px 0 6px rgba(60, 160, 255, 0.45),
           0 0 30px rgba(240, 237, 232, 0.08);
       }
+      /* First soft jolt ~55% */
       55% {
         transform: translateX(0);
         filter: blur(0);
@@ -139,6 +143,7 @@
           -4px 0 6px rgba(60, 160, 255, 0.45),
           0 0 30px rgba(240, 237, 232, 0.08);
       }
+      /* Hard burst ~83% */
       83% {
         transform: translateX(0);
         filter: blur(0);
@@ -339,6 +344,11 @@
       color: var(--color-text);
     }
 
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
     @media (max-width: 768px) {
       .hiw-steps {
         grid-template-columns: 1fr;
@@ -352,7 +362,7 @@
   <!-- Navigation -->
   <nav class="site-nav" aria-label="Main navigation">
     <div class="nav-inner">
-      <a href="index.html" class="nav-wordmark" id="navWordmark"><span>H</span><span class="wm-hide">A</span><span class="wm-hide">U</span><span class="wm-hide">S</span><span>O</span><span class="wm-hide">F</span><span>M</span><span class="wm-hide">E</span><span class="wm-hide">M</span><span class="wm-hide">O</span><span class="wm-hide">R</span><span class="wm-hide">I</span><span>E</span><span class="wm-hide">S</span></a>
+      <a href="index.html" class="nav-wordmark" id="nav-wordmark">Hausofmemories</a>
       <ul class="nav-links" role="list">
         <li><a href="galleries.html">Galleries</a></li>
         <li><a href="shop.html">Shop</a></li>
@@ -367,6 +377,7 @@
 
   <!-- Mobile overlay -->
   <div class="nav-overlay" id="navOverlay" aria-hidden="true">
+    <a href="index.html">Home</a>
     <a href="galleries.html">Galleries</a>
     <a href="shop.html">Shop</a>
   </div>
@@ -512,12 +523,54 @@
   </section>
 
   <!-- Footer -->
+
+  <!-- Book Now -->
+  <section class="section" style="background: var(--color-surface);">
+    <div class="section-inner" style="max-width: 560px; text-align: center;">
+      <p class="section-eyebrow">Book Now</p>
+      <h2 class="section-title">Bring Haus of Memories<br>to Your Event</h2>
+      <p style="color: var(--color-text-muted); font-size: var(--text-sm); margin-bottom: var(--space-8); font-family: var(--font-body);">Fill out the form and we'll get back to you within 24 hours.</p>
+      <form id="book-form" style="display: flex; flex-direction: column; gap: var(--space-4); text-align: left;">
+        <input class="form-input" type="text" id="book-name" placeholder="Your Name" required />
+        <input class="form-input" type="email" id="book-email" placeholder="Your Email" required />
+        <input class="form-input" type="text" id="book-event" placeholder="Event Name & Date" required />
+        <input class="form-input" type="text" id="book-location" placeholder="Location" />
+        <textarea class="form-input" id="book-message" placeholder="Tell me about your event" rows="4" style="resize: vertical; font-family: var(--font-body); letter-spacing: 0.04em; text-transform: none; font-size: var(--text-sm); font-weight: 400;"></textarea>
+        <button type="submit" class="btn btn-filled" style="animation:glitch-btn 19s steps(1) infinite 4.2s;">Send Request</button>
+        <p id="book-status" style="text-align:center; font-family: var(--font-body); font-size: var(--text-sm); color: var(--color-text-muted); min-height: 1.2em;"></p>
+      </form>
+    </div>
+  </section>
+
+  <script>
+  document.getElementById('book-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const name = document.getElementById('book-name').value;
+    const email = document.getElementById('book-email').value;
+    const event = document.getElementById('book-event').value;
+    const location = document.getElementById('book-location').value;
+    const message = document.getElementById('book-message').value;
+    const status = document.getElementById('book-status');
+
+    const subject = encodeURIComponent('Booking Request — ' + event);
+    const body = encodeURIComponent(
+      'Name: ' + name + '\n' +
+      'Email: ' + email + '\n' +
+      'Event: ' + event + '\n' +
+      'Location: ' + location + '\n\n' +
+      message
+    );
+
+    window.location.href = 'mailto:hausofquel@gmail.com?subject=' + subject + '&body=' + body;
+    status.textContent = 'Opening your email app...';
+  });
+  </script>
+
   <footer class="site-footer">
     <div class="footer-inner">
       <a href="index.html" class="footer-wordmark">Hausofmemories</a>
       <nav aria-label="Footer navigation">
         <ul class="footer-nav" role="list">
-          <li><a href="index.html">Home</a></li>
           <li><a href="galleries.html">Galleries</a></li>
           <li><a href="shop.html">Shop</a></li>
         </ul>
@@ -527,8 +580,7 @@
   </footer>
 
   <script>
-    setTimeout(() => { const wm = document.getElementById('navWordmark'); wm.classList.add('collapsed'); setTimeout(() => wm.classList.remove('collapsed'), 8000); }, 8000);
-
+    // Mobile nav
     const hamburger = document.getElementById('hamburger');
     const navOverlay = document.getElementById('navOverlay');
 
@@ -557,6 +609,7 @@
       }
     });
 
+    // Scroll reveal
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
@@ -568,5 +621,69 @@
 
     document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
   </script>
+<style>
+  .nav-wordmark .wm-letter {
+    display: inline-block;
+    transition: max-width 0.4s ease, opacity 0.4s ease, letter-spacing 0.4s ease;
+    max-width: 1.2em;
+    overflow: hidden;
+    vertical-align: bottom;
+  }
+  .nav-wordmark .wm-letter.collapsed {
+    max-width: 0;
+    opacity: 0;
+    letter-spacing: 0;
+  }
+</style>
+
+<script>
+(function() {
+  const el = document.getElementById('nav-wordmark');
+  if (!el) return;
+
+  // hausofmemories — H=0 O=4 M=6 E=12 spell HOME (using 2nd E in 'memories')
+  const keepIndices = new Set([0, 4, 6, 12]);
+  const text = el.textContent.trim(); // 'hausofmemories'
+
+  // Replace text content with individual spans, preserving original characters
+  el.textContent = '';
+  const spans = text.split('').map((char, i) => {
+    const s = document.createElement('span');
+    s.className = 'wm-letter';
+    s.textContent = char;
+    el.appendChild(s);
+    return s;
+  });
+
+  function collapseToHome() {
+    spans.forEach((s, i) => {
+      if (!keepIndices.has(i)) s.classList.add('collapsed');
+    });
+    setTimeout(() => {
+      keepIndices.forEach(i => spans[i].style.letterSpacing = '0.38em');
+    }, 420);
+  }
+
+  function expandToFull() {
+    keepIndices.forEach(i => spans[i].style.letterSpacing = '');
+    setTimeout(() => {
+      spans.forEach((s, i) => {
+        if (!keepIndices.has(i)) s.classList.remove('collapsed');
+      });
+    }, 60);
+  }
+
+  function runCycle() {
+    collapseToHome();
+    setTimeout(() => {
+      expandToFull();
+      setTimeout(runCycle, 8000);
+    }, 2600);
+  }
+
+  setTimeout(runCycle, 8000);
+})();
+</script>
+
 </body>
 </html>
