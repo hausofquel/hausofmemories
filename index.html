@@ -600,13 +600,13 @@
   const el = document.getElementById('nav-wordmark');
   if (!el) return;
 
-  // H=0 A=1 U=2 S=3 O=4 F=5 M=6 E=7 M=8 O=9 R=10 I=11 E=12 S=13
-  // Keep H(0) O(4) M(6) E(7) for HOME
+  // hausofmemories — H=0 O=4 M=6 E=7 spell HOME (CSS handles uppercase visually)
   const keepIndices = new Set([0, 4, 6, 7]);
-  const letters = 'HAUSOFMEMORIES'.split('');
+  const text = el.textContent.trim(); // 'hausofmemories'
 
-  el.innerHTML = '';
-  const spans = letters.map((char, i) => {
+  // Replace text content with individual spans, preserving original characters
+  el.textContent = '';
+  const spans = text.split('').map((char, i) => {
     const s = document.createElement('span');
     s.className = 'wm-letter';
     s.textContent = char;
@@ -618,7 +618,6 @@
     spans.forEach((s, i) => {
       if (!keepIndices.has(i)) s.classList.add('collapsed');
     });
-    // Widen spacing on H O M E after collapse
     setTimeout(() => {
       keepIndices.forEach(i => spans[i].style.letterSpacing = '0.38em');
     }, 420);
