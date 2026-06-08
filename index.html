@@ -362,7 +362,7 @@
   <!-- Navigation -->
   <nav class="site-nav" aria-label="Main navigation">
     <div class="nav-inner">
-      <a href="index.html" class="nav-wordmark">Hausofmemories</a>
+      <a href="index.html" class="nav-wordmark" id="nav-wordmark">Hausofmemories</a>
       <ul class="nav-links" role="list">
         <li><a href="index.html" class="active">Home</a></li>
         <li><a href="galleries.html">Galleries</a></li>
@@ -580,5 +580,89 @@
 
     document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
   </script>
+<style>
+  .nav-wordmark .wm-letter {
+    display: inline-block;
+    transition: opacity 0.35s ease, transform 0.35s ease, width 0.35s ease, letter-spacing 0.35s ease;
+    will-change: transform, opacity, width;
+  }
+</style>
+
+<script>
+(function() {
+  const el = document.getElementById('nav-wordmark');
+  if (!el) return;
+
+  // HAUSOFMEMORIES — which letters to keep for HOME
+  // H(0) O(4) M(9) E(11) — indices in 'HAUSOFMEMORIES'
+  const full = 'HAUSOFMEMORIES'.split('');
+  const keepIndices = new Set([0, 4, 9, 11]); // H, O, M, E
+
+  // Build spans
+  el.innerHTML = '';
+  const spans = full.map((char, i) => {
+    const s = document.createElement('span');
+    s.className = 'wm-letter';
+    s.textContent = char;
+    s.dataset.idx = i;
+    el.appendChild(s);
+    return s;
+  });
+
+  function collapseToHome() {
+    // Fade + collapse non-HOME letters
+    spans.forEach((s, i) => {
+      if (!keepIndices.has(i)) {
+        s.style.opacity = '0';
+        s.style.width = '0';
+        s.style.overflow = 'hidden';
+        s.style.letterSpacing = '0';
+        s.style.marginRight = '0';
+        s.style.transform = 'scaleX(0)';
+        s.style.display = 'inline-block';
+      }
+    });
+    // After collapse, widen spacing on HOME letters for breathing room
+    setTimeout(() => {
+      keepIndices.forEach(i => {
+        spans[i].style.letterSpacing = '0.32em';
+      });
+    }, 380);
+  }
+
+  function expandToFull() {
+    // First reset HOME spacing
+    keepIndices.forEach(i => {
+      spans[i].style.letterSpacing = '0.22em';
+    });
+    // Then fan all letters back in
+    setTimeout(() => {
+      spans.forEach((s, i) => {
+        if (!keepIndices.has(i)) {
+          s.style.opacity = '1';
+          s.style.width = '';
+          s.style.overflow = '';
+          s.style.letterSpacing = '0.22em';
+          s.style.marginRight = '';
+          s.style.transform = 'scaleX(1)';
+        }
+      });
+    }, 60);
+  }
+
+  // Cycle: wait 8s → collapse (0.4s) → hold HOME 2s → expand (0.4s) → repeat
+  function runCycle() {
+    collapseToHome();
+    setTimeout(() => {
+      expandToFull();
+      setTimeout(runCycle, 8000); // 8s delay before next cycle
+    }, 2400); // hold HOME for 2s
+  }
+
+  // Initial 8s delay before first animation
+  setTimeout(runCycle, 8000);
+})();
+</script>
+
 </body>
 </html>
