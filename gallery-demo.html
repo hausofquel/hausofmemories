@@ -549,5 +549,48 @@
 
     document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
   </script>
+<style>
+  .nav-wordmark .wm-letter {
+    display: inline-block;
+    transition: max-width 0.4s ease, opacity 0.4s ease, letter-spacing 0.4s ease;
+    max-width: 1.2em;
+    overflow: hidden;
+    vertical-align: bottom;
+  }
+  .nav-wordmark .wm-letter.collapsed {
+    max-width: 0;
+    opacity: 0;
+    letter-spacing: 0;
+  }
+</style>
+<script>
+(function() {
+  const el = document.querySelector('.nav-wordmark');
+  if (!el) return;
+  const keepIndices = new Set([0, 4, 6, 12]);
+  const text = el.textContent.trim();
+  el.textContent = '';
+  const spans = text.split('').map((char, i) => {
+    const s = document.createElement('span');
+    s.className = 'wm-letter';
+    s.textContent = char;
+    el.appendChild(s);
+    return s;
+  });
+  function collapseToHome() {
+    spans.forEach((s, i) => { if (!keepIndices.has(i)) s.classList.add('collapsed'); });
+    setTimeout(() => { keepIndices.forEach(i => spans[i].style.letterSpacing = '0.38em'); }, 420);
+  }
+  function expandToFull() {
+    keepIndices.forEach(i => spans[i].style.letterSpacing = '');
+    setTimeout(() => { spans.forEach((s, i) => { if (!keepIndices.has(i)) s.classList.remove('collapsed'); }); }, 60);
+  }
+  function runCycle() {
+    collapseToHome();
+    setTimeout(() => { expandToFull(); setTimeout(runCycle, 8000); }, 2600);
+  }
+  setTimeout(runCycle, 8000);
+})();
+</script>
 </body>
 </html>
