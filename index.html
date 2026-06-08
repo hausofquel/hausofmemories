@@ -523,6 +523,49 @@
   </section>
 
   <!-- Footer -->
+
+  <!-- Book Now -->
+  <section class="section" style="background: var(--color-surface);">
+    <div class="section-inner" style="max-width: 560px; text-align: center;">
+      <p class="section-eyebrow">Book Now</p>
+      <h2 class="section-title">Bring Haus of Memories<br>to Your Event</h2>
+      <p style="color: var(--color-text-muted); font-size: var(--text-sm); margin-bottom: var(--space-8); font-family: var(--font-body);">Fill out the form and we'll get back to you within 24 hours.</p>
+      <form id="book-form" style="display: flex; flex-direction: column; gap: var(--space-4); text-align: left;">
+        <input class="form-input" type="text" id="book-name" placeholder="Your Name" required />
+        <input class="form-input" type="email" id="book-email" placeholder="Your Email" required />
+        <input class="form-input" type="text" id="book-event" placeholder="Event Name & Date" required />
+        <input class="form-input" type="text" id="book-location" placeholder="Location" />
+        <textarea class="form-input" id="book-message" placeholder="Tell me about your event" rows="4" style="resize: vertical; font-family: var(--font-body); letter-spacing: 0.04em; text-transform: none; font-size: var(--text-sm); font-weight: 400;"></textarea>
+        <button type="submit" class="btn btn-filled" style="animation:glitch-btn 19s steps(1) infinite 4.2s;">Send Request</button>
+        <p id="book-status" style="text-align:center; font-family: var(--font-body); font-size: var(--text-sm); color: var(--color-text-muted); min-height: 1.2em;"></p>
+      </form>
+    </div>
+  </section>
+
+  <script>
+  document.getElementById('book-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const name = document.getElementById('book-name').value;
+    const email = document.getElementById('book-email').value;
+    const event = document.getElementById('book-event').value;
+    const location = document.getElementById('book-location').value;
+    const message = document.getElementById('book-message').value;
+    const status = document.getElementById('book-status');
+
+    const subject = encodeURIComponent('Booking Request — ' + event);
+    const body = encodeURIComponent(
+      'Name: ' + name + '\n' +
+      'Email: ' + email + '\n' +
+      'Event: ' + event + '\n' +
+      'Location: ' + location + '\n\n' +
+      message
+    );
+
+    window.location.href = 'mailto:hausofquel@gmail.com?subject=' + subject + '&body=' + body;
+    status.textContent = 'Opening your email app...';
+  });
+  </script>
+
   <footer class="site-footer">
     <div class="footer-inner">
       <a href="index.html" class="footer-wordmark">Hausofmemories</a>
