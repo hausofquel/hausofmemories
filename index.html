@@ -600,8 +600,8 @@
   const el = document.getElementById('nav-wordmark');
   if (!el) return;
 
-  // hausofmemories — H=0 O=4 M=6 E=7 spell HOME (CSS handles uppercase visually)
-  const keepIndices = new Set([0, 4, 6, 7]);
+  // hausofmemories — H=0 O=4 M=6 E=12 spell HOME (using 2nd E in 'memories')
+  const keepIndices = new Set([0, 4, 6, 12]);
   const text = el.textContent.trim(); // 'hausofmemories'
 
   // Replace text content with individual spans, preserving original characters
