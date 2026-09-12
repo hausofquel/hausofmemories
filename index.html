@@ -320,10 +320,8 @@
   }
 
   /* ── The portfolio light. Violet, so it belongs to neither the amber
-     archives nor the blue one, and it glitches rather than blinking
-     evenly — the field is otherwise all slow drift, so a light that
-     stutters is the one your eye goes to. Below the generic hover
-     rules for the same specificity-tie reason as the block above. ── */
+     archives nor the blue one. Below the generic hover rules for the
+     same specificity-tie reason as the block above. ── */
   .firefly-port .firefly-dot {
     --glow-rgb: 173,110,255;
     background: #f6ecff;
@@ -356,9 +354,16 @@
     93%           { transform: translate(-10px, -2px);opacity: 0.3; }
     95%           { transform: translate(4px, 5px);   opacity: 1; }
   }
-  .firefly-port .firefly-spin {
+  /* Both of the lights that aren't archives carry the fault — it's
+     what separates them from the swarm, which only ever drifts and
+     blinks. Different periods so the two never stutter in unison;
+     landing together would read as the page hiccupping rather than as
+     two independent lights. */
+  .firefly-port .firefly-spin,
+  .firefly-link .firefly-spin {
     animation: firefly-glitch 3.4s steps(1, end) infinite;
   }
+  .firefly-link .firefly-spin { animation-duration: 4.3s; }
 
   /* Pressed. There's nowhere to go yet, so the light answers by
      breaking up harder for a moment — the same fault as its idle
@@ -386,9 +391,11 @@
   /* A light that stutters is exactly what the flashing setting is for,
      so calm mode holds it steady — it keeps the violet, loses the
      fault. Same for anyone whose system asks for reduced motion. */
-  body.calm .firefly-port .firefly-spin { animation: none; }
+  body.calm .firefly-port .firefly-spin,
+  body.calm .firefly-link .firefly-spin { animation: none; }
   @media (prefers-reduced-motion: reduce) {
-    .firefly-port .firefly-spin { animation: none; }
+    .firefly-port .firefly-spin,
+    .firefly-link .firefly-spin { animation: none; }
   }
 
   /* Clicking an empty one pops it — a quick bright flare, then out,
