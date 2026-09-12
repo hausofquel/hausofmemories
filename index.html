@@ -1497,17 +1497,25 @@
         if (!plate || plate.done || plate.el.hidden) return;
         plate.done = true;
         plate.el.classList.add('hint-dismissing');
-        setTimeout(() => { plate.el.hidden = true; }, 480);
+        plate.timer = setTimeout(() => { plate.el.hidden = true; }, 480);
       }
 
       function show(plate) {
         if (!plate) return;
+        /* A dismissal already under way has a hide queued behind it.
+           Left running, it fires after this and takes the plate straight
+           back down — so reopening within that window did nothing. */
+        if (plate.timer) { clearTimeout(plate.timer); plate.timer = null; }
         plate.done = false;
         plate.el.classList.remove('hint-dismissing');
         plate.el.hidden = false;
       }
 
       function dismissAll() { plates.forEach(dismiss); }
+
+      /* Up and staying up. A plate part-way through its dismissal is
+         already on its way out, so it doesn't count as open. */
+      function isOpen(plate) { return !!plate && !plate.done && !plate.el.hidden; }
 
       /* Any key dismisses, always. Clicks dismiss too — except the one
          on the help mark, which is how you ask for these in the first
@@ -1521,7 +1529,7 @@
         dismissAll();
       }, true);
 
-      return { register, dismiss, dismissAll, show };
+      return { register, dismiss, dismissAll, show, isOpen };
     })();
 
     const landingHint = hints.register(document.getElementById('hint'));
@@ -1535,13 +1543,16 @@
 
       /* The help mark brings back whichever hint belongs to where you
          are: the archive one if an archive is open, the landing one
-         otherwise. */
+         otherwise. Pressing it again puts the plate away, so the mark
+         works both ways rather than only ever opening. */
       const helpBtn = document.getElementById('help');
       if (helpBtn) {
         helpBtn.addEventListener('click', () => {
           if (window.matchMedia('(max-width: 720px)').matches) return;
           const inArchive = !document.getElementById('gallery').classList.contains('gallery-hidden');
-          hints.show(inArchive ? archiveHint : landingHint);
+          const plate = inArchive ? archiveHint : landingHint;
+          if (hints.isOpen(plate)) hints.dismiss(plate);
+          else hints.show(plate);
           helpBtn.blur();
         });
       }
@@ -1959,6 +1970,13 @@
         ArrowDown:  [ 0, -1]
       };
 
+      /* Stoke timing. The flare comes up fast, holds past half a second
+         so it's unmistakably lit on every gust, then falls away slowly.
+         HOLD is measured from the moment the flare is fully up. */
+      const STOKE_ATTACK = 130;
+      const STOKE_HOLD = 620;
+      const STOKE_FADE = 1400;
+
       function gust(ux, uy) {
         /* Every gust is its own weather. One press might be a light
            breath, the next a real shove — and wind is patchy, so some
@@ -2008,8 +2026,15 @@
 
           const dotEl = f.querySelector('.firefly-dot');
           if (dotEl) {
-            dotEl.style.transitionDuration = blow.toFixed(0) + 'ms';
-            dotEl.style.transitionDelay = hit.toFixed(0) + 'ms';
+            /* The swing rides the gust's own duration, but the flare
+               gets its own short attack — sharing the drift's timing
+               meant a slow gust was still ramping up when the decay
+               below already had it on the way down, so it never
+               actually read as bright. */
+            dotEl.style.transition =
+              'opacity 150ms ease, transform 150ms ease, box-shadow 150ms ease, ' +
+              'translate ' + blow.toFixed(0) + 'ms cubic-bezier(0.33, 0.6, 0.4, 1) ' + hit.toFixed(0) + 'ms, ' +
+              'filter ' + STOKE_ATTACK + 'ms ease-out ' + hit.toFixed(0) + 'ms';
             dotEl.style.translate = swing.toFixed(1) + 'px 0px';
           }
 
@@ -2031,7 +2056,10 @@
               f.dataset.peak = String(isNaN(p) ? 0.8 : p);
             }
             const base = parseFloat(f.dataset.peak) || 0.8;
-            dotEl.style.filter = 'brightness(' + (1 + force * rand(0.3, 0.85)).toFixed(2) + ')';
+            /* Floored well above 1 so even the lightest gust reads as a
+               flare rather than a barely-there shimmer. */
+            const lift = Math.min(2.6, 1.55 + force * rand(0.15, 0.55));
+            dotEl.style.filter = 'brightness(' + lift.toFixed(2) + ')';
             f.style.setProperty('--peak', Math.min(1, base * (1 + force * 0.45)).toFixed(2));
           }
 
@@ -2048,18 +2076,22 @@
               spinEl.style.rotate = (spin + rand(4, 22) * Math.sign(spin || 1)).toFixed(0) + 'deg';
             }
             if (dotEl) {
-              dotEl.style.transitionDuration = settle.toFixed(0) + 'ms';
-              dotEl.style.transitionDelay = '0ms';
+              dotEl.style.transition =
+                'opacity 150ms ease, transform 150ms ease, box-shadow 150ms ease, ' +
+                'translate ' + settle.toFixed(0) + 'ms cubic-bezier(0.25, 0.55, 0.3, 1), ' +
+                'filter ' + STOKE_FADE + 'ms ease-out';
               dotEl.style.translate = '0px 0px';
-              /* Dies back down over the same slow settle as the drift.
-                 An explicit brightness(1) rather than clearing it, so
-                 the transition has somewhere to go. */
+              /* Dies back down slowly, well after the hold. An explicit
+                 brightness(1) rather than clearing it, so the
+                 transition has somewhere to go. */
               if (stoking) {
                 dotEl.style.filter = 'brightness(1)';
                 if (f.dataset.peak) f.style.setProperty('--peak', f.dataset.peak);
               }
             }
-          }, hit + rand(520, 1000));
+            /* The flare has to be up for at least half a second before
+               anything starts taking it away. */
+          }, hit + STOKE_ATTACK + STOKE_HOLD + rand(0, 320));
         });
       }
 
