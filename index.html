@@ -330,8 +330,10 @@
     height: auto;
     object-fit: contain;
     display: block;
-    /* -webkit-touch-callout blocks the long-press save sheet on iOS;
-       user-drag blocks dragging the file straight out to the desktop. */
+  }
+  /* -webkit-touch-callout blocks the long-press save sheet on iOS;
+     user-drag blocks dragging the file straight out to the desktop. */
+  .gallery-stage .pic, .peek {
     -webkit-touch-callout: none;
     -webkit-user-drag: none;
     user-select: none;
@@ -379,6 +381,31 @@
     outline: none;
   }
   .gallery-step[hidden] { display: none; }
+
+  /* A sliver of what's on either side, so stepping isn't blind. Dim
+     until you go looking; the chevron sits under it. */
+  .gallery-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+  }
+  .peek {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    display: block;
+    opacity: 0.3;
+    border: 1px solid rgba(147,168,184,0.18);
+    transition: opacity 220ms ease, border-color 220ms ease;
+  }
+  .peek[hidden] { display: none; }
+  .gallery-step:hover .peek,
+  .gallery-step:focus-visible .peek {
+    opacity: 0.92;
+    border-color: var(--line-bright);
+  }
+  .step-mark { display: block; }
   .step-prev { left: clamp(6px, 2vw, 34px); }
   .step-next { right: clamp(6px, 2vw, 34px); }
 
@@ -415,6 +442,120 @@
     text-transform: uppercase;
     color: var(--steel-dim);
     opacity: 0.5;
+  }
+
+  /* ── First-look hint — bottom centre, out of the photograph's way,
+     dim enough to ignore and gone the moment you press anything. The
+     key caps are drawn, not typed: four small plates in the usual
+     inverted-T so it reads as a keyboard at a glance. ── */
+  .hint {
+    position: fixed;
+    left: 50%;
+    bottom: clamp(20px, 4vh, 48px);
+    transform: translateX(-50%);
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 30px 16px;
+    max-width: min(92vw, 460px);
+    text-align: center;
+    background: rgba(11, 15, 21, 0.82);
+    border: 1px solid rgba(147,168,184,0.16);
+    backdrop-filter: blur(3px);
+  }
+  .hint[hidden] { display: none; }
+
+  .hint-keys {
+    display: grid;
+    grid-template-columns: repeat(3, 26px);
+    grid-template-rows: repeat(2, 26px);
+    gap: 4px;
+  }
+  .key {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Courier Prime', monospace;
+    font-size: 13px;
+    line-height: 1;
+    color: var(--steel);
+    border: 1px solid rgba(147,168,184,0.35);
+    border-radius: 3px;
+    background: rgba(147,168,184,0.06);
+  }
+  .key-up    { grid-column: 2; grid-row: 1; }
+  .key-left  { grid-column: 1; grid-row: 2; }
+  .key-down  { grid-column: 2; grid-row: 2; }
+  .key-right { grid-column: 3; grid-row: 2; }
+
+  /* the keys light up in turn, so it reads as "press these" */
+  .key { animation: key-cue 4s ease-in-out infinite; }
+  .key-up    { animation-delay: 0s; }
+  .key-left  { animation-delay: 0.35s; }
+  .key-down  { animation-delay: 0.7s; }
+  .key-right { animation-delay: 1.05s; }
+  @keyframes key-cue {
+    0%, 22%, 100% { border-color: rgba(147,168,184,0.35); color: var(--steel); box-shadow: none; }
+    8% { border-color: var(--line-bright); color: var(--red); box-shadow: 0 0 10px rgba(214,71,58,0.35); }
+  }
+
+  .hint-line {
+    font-family: 'Courier Prime', monospace;
+    font-size: 10.5px;
+    line-height: 1.85;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--steel);
+  }
+  .hint-note {
+    font-family: 'Courier Prime', monospace;
+    font-size: 9px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--steel-dim);
+  }
+  .hint-close {
+    position: absolute;
+    top: 4px;
+    right: 8px;
+    background: none;
+    border: 0;
+    padding: 4px 6px;
+    font-family: 'Courier Prime', monospace;
+    font-size: 14px;
+    line-height: 1;
+    color: var(--steel-dim);
+    cursor: pointer;
+    transition: color 150ms ease;
+  }
+  .hint-close:hover, .hint-close:focus-visible { color: var(--red); outline: none; }
+
+  /* Archive hint — same plate, but two rows since there are two axes
+     to explain rather than one swarm to stir. */
+  .hint-archive { bottom: auto; top: clamp(18px, 3.5vh, 44px); padding: 16px 30px 14px; }
+  .hint-rows { display: flex; flex-direction: column; gap: 9px; }
+  .hint-row { display: flex; align-items: center; gap: 6px; }
+  .hint-row .key { width: 26px; height: 26px; animation: none; }
+  .hint-row-text {
+    margin-left: 8px;
+    font-family: 'Courier Prime', monospace;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--steel);
+  }
+
+  /* Leaves the same way everything else on this site does. */
+  .hint-dismissing { animation: flicker-out 460ms linear forwards; pointer-events: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .key { animation: none; }
+    .hint-dismissing { animation: none; opacity: 0; }
+  }
+
+  @media (max-width: 720px) {
+    .hint { display: none; }
   }
 
   /* ── Flicker — the whole screen stutters out like a bulb losing
@@ -502,11 +643,47 @@
        transition — clicking a firefly lands you straight in the
        pictures. Big cropped view on the left, the rest of the
        collection on the right; picking one swaps the left. -->
+  <!-- First-look hint. Says the site answers back, shows which keys,
+       and gets out of the way the moment you touch anything. -->
+  <div class="hint" id="hint" role="note">
+    <div class="hint-keys" aria-hidden="true">
+      <span class="key key-up">&uarr;</span>
+      <span class="key key-left">&larr;</span>
+      <span class="key key-down">&darr;</span>
+      <span class="key key-right">&rarr;</span>
+    </div>
+    <p class="hint-line">Arrow keys send a breeze through the swarm.<br>A light that burns amber has an archive behind it.</p>
+    <p class="hint-note">Best on a computer</p>
+    <button class="hint-close" id="hintClose" aria-label="Dismiss">&times;</button>
+  </div>
+
+  <!-- Shown the first time an archive is opened: the two axes, and
+       what each one does. -->
+  <div class="hint hint-archive" id="hintArchive" role="note" hidden>
+    <div class="hint-rows">
+      <div class="hint-row">
+        <span class="key">←</span><span class="key">→</span>
+        <span class="hint-row-text">through this archive</span>
+      </div>
+      <div class="hint-row">
+        <span class="key">↑</span><span class="key">↓</span>
+        <span class="hint-row-text">between archives</span>
+      </div>
+    </div>
+    <button class="hint-close" id="hintArchiveClose" aria-label="Dismiss">×</button>
+  </div>
+
   <div class="gallery gallery-hidden" id="gallery">
     <button class="gallery-back" id="galleryBack" aria-label="Back to the archive">‹ Archive</button>
-    <button class="gallery-step step-prev" id="stepPrev" aria-label="Previous photograph">‹</button>
+    <button class="gallery-step step-prev" id="stepPrev" aria-label="Previous photograph">
+      <img class="peek" id="peekPrev" alt="" />
+      <span class="step-mark">‹</span>
+    </button>
     <div class="gallery-stage" id="galleryStage"></div>
-    <button class="gallery-step step-next" id="stepNext" aria-label="Next photograph">›</button>
+    <button class="gallery-step step-next" id="stepNext" aria-label="Next photograph">
+      <img class="peek" id="peekNext" alt="" />
+      <span class="step-mark">›</span>
+    </button>
     <div class="gallery-meta" id="galleryMeta"></div>
   </div>
 
@@ -537,9 +714,20 @@
     const galleryBack = document.getElementById('galleryBack');
     const stepPrev = document.getElementById('stepPrev');
     const stepNext = document.getElementById('stepNext');
+    const peekPrev = document.getElementById('peekPrev');
+    const peekNext = document.getElementById('peekNext');
 
     let shown = [];
     let activeIndex = null;
+    let currentKey = null;
+
+    // Archives with photographs actually in them — the only ones worth
+    // stepping between, and the same test the fireflies use.
+    function activeArchives() {
+      return ARCHIVE_COLLECTIONS
+        .filter(c => entries.some(e => e.collection === c.key))
+        .map(c => c.key);
+    }
 
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -581,6 +769,30 @@
       const many = shown.length > 1;
       stepPrev.hidden = !many;
       stepNext.hidden = !many;
+
+      // A sliver of what's either side, so you can see where you're
+      // about to go rather than stepping blind.
+      if (many) {
+        const prevE = shown[(i - 1 + shown.length) % shown.length];
+        const nextE = shown[(i + 1) % shown.length];
+        [[peekPrev, prevE], [peekNext, nextE]].forEach(([el, e2]) => {
+          if (!el) return;
+          if (e2 && e2.image) { el.src = e2.image; el.hidden = false; }
+          else { el.removeAttribute('src'); el.hidden = true; }
+        });
+      }
+    }
+
+    /* Up and down move between archives — the same flicker as opening
+       one, since it's the same kind of change: the whole screen
+       becomes a different archive. Wraps, and only visits archives
+       that have photographs in them. */
+    function stepArchive(delta) {
+      const keys = activeArchives();
+      if (keys.length < 2 || currentKey === null) return;
+      const at = keys.indexOf(currentKey);
+      if (at === -1) return;
+      openCollection(keys[(at + delta + keys.length) % keys.length]);
     }
 
     // Left/right through the archive, wrapping at either end.
@@ -595,6 +807,7 @@
       flickerSwap(() => {
         shown = entries.filter(e => e.collection === key);
         activeIndex = null;
+        currentKey = key;
 
         gallery.classList.remove('gallery-hidden');
         document.body.classList.add('viewing');
@@ -610,6 +823,7 @@
           stepNext.hidden = true;
         }
         galleryBack.focus();
+        if (window.__showArchiveHint) window.__showArchiveHint();
       });
     }
 
@@ -619,6 +833,7 @@
         document.body.classList.remove('viewing');
         shown = [];
         activeIndex = null;
+        currentKey = null;
         stage.innerHTML = '';
         meta.innerHTML = '';
       });
@@ -633,7 +848,58 @@
       if (ev.key === 'Escape') { closeGallery(); return; }
       if (ev.key === 'ArrowLeft')  { ev.preventDefault(); step(-1); }
       if (ev.key === 'ArrowRight') { ev.preventDefault(); step(1); }
+      if (ev.key === 'ArrowUp')    { ev.preventDefault(); stepArchive(-1); }
+      if (ev.key === 'ArrowDown')  { ev.preventDefault(); stepArchive(1); }
     });
+
+    /* The archive hint: shown the first time an archive opens, then
+       not again for the rest of the visit. Same dismissal as the
+       landing one — click, Esc, or an arrow key, since pressing an
+       arrow is the thing it's describing. */
+    (function () {
+      const h = document.getElementById('hintArchive');
+      if (!h) return;
+      let used = false, gone = false;
+      function dismiss() {
+        if (gone || h.hidden) return;
+        gone = true;
+        h.classList.add('hint-dismissing');
+        setTimeout(() => { h.hidden = true; }, 480);
+      }
+      window.__showArchiveHint = function () {
+        if (used || window.matchMedia('(max-width: 720px)').matches) return;
+        used = true;
+        h.hidden = false;
+      };
+      document.getElementById('hintArchiveClose').addEventListener('click', dismiss);
+      h.addEventListener('click', dismiss);
+      document.addEventListener('keydown', (ev) => {
+        if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Escape'].includes(ev.key)) dismiss();
+      });
+    })();
+
+    /* The hint leaves on the first sign you've read it — a click, Esc,
+       or any arrow key, which both dismisses it and is the thing it
+       was telling you about. Flickers out rather than fading, same as
+       every other transition here. */
+    (function () {
+      const hint = document.getElementById('hint');
+      if (!hint) return;
+      let gone = false;
+      function dismiss() {
+        if (gone) return;
+        gone = true;
+        hint.classList.add('hint-dismissing');
+        setTimeout(() => { hint.hidden = true; }, 480);
+      }
+      document.getElementById('hintClose').addEventListener('click', dismiss);
+      hint.addEventListener('click', dismiss);
+      document.addEventListener('keydown', (ev) => {
+        if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Escape'].includes(ev.key)) dismiss();
+      });
+      // opening an archive counts as having got the idea
+      document.getElementById('fireflies').addEventListener('click', dismiss, true);
+    })();
 
     // Brand mark — sits still, then flickers like a light bulb with
     // a loose connection, in short, irregular bursts.
