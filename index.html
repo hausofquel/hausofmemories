@@ -578,7 +578,9 @@
     bottom: 100%;
     left: 50%;
     transform: translateX(-50%);
-    margin-bottom: clamp(22px, 4vh, 44px);
+    /* Sits well clear of the mark on a roomy window; the short-window
+       rule below pulls it back in rather than letting it clip. */
+    margin-bottom: clamp(24px, 8vh, 90px);
     width: max-content;
     max-width: min(90vw, 470px);
     padding: 22px 30px 20px;
@@ -658,7 +660,7 @@
      hangs above a mark that's already near the middle. Tighten it
      rather than let it clip. */
   @media (max-height: 780px) {
-    .warn { margin-bottom: 16px; padding: 16px 24px 15px; }
+    .warn { margin-bottom: 14px; padding: 16px 24px 15px; }
     .warn-body { line-height: 1.7; margin-bottom: 14px; }
     .warn-title { margin-bottom: 9px; }
   }
