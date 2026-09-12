@@ -278,6 +278,32 @@
     box-shadow: 0 0 6px 2px rgba(214,71,58,0.95), 0 0 18px 8px rgba(214,71,58,0.55);
   }
 
+  /* ── The one that isn't an archive. Hidden until it's asked for,
+     and coloured off the Instagram link rather than by eye: letter
+     cores there peak at #eefdff and the glow and rule sit at #406b73,
+     which over black is roughly #74c3d1 at half alpha. Nothing
+     mentions it anywhere on the site.
+
+     These sit BELOW the generic hover rules on purpose. Specificity is
+     a tie between `.firefly-link:hover .firefly-dot` and
+     `.firefly:hover .firefly-dot`, so whichever is written last wins —
+     written above, the amber hover glow overwrote the blue one. ── */
+  .firefly-link .firefly-dot {
+    background: #eefdff;
+    box-shadow: 0 0 5px 2px rgba(116,195,209,0.9), 0 0 18px 7px rgba(116,195,209,0.45);
+  }
+  .firefly-link:hover .firefly-dot,
+  .firefly-link:focus-visible .firefly-dot {
+    background: #eefdff;
+    box-shadow: 0 0 7px 3px rgba(190,243,255,1), 0 0 24px 11px rgba(116,195,209,0.6);
+  }
+  .firefly-link .firefly-label {
+    color: #c5d5d8;
+    text-shadow: 0 0 8px rgba(11,15,21,0.95), 0 0 10px rgba(116,195,209,0.5);
+    border-bottom: 1px solid rgba(116,195,209,0.55);
+    padding-bottom: 3px;
+  }
+
   /* Clicking an empty one pops it — a quick bright flare, then out,
      like a bulb giving up. It leaves the field for good (until a
      reload); there's nothing behind it to open. */
@@ -517,6 +543,136 @@
     .tally.tally-bump .tally-dot { animation: none; }
   }
 
+  /* ── Flashing-light warning — sits directly under the mark, and
+     because it's absolutely positioned inside the mark's wrapper it
+     follows wherever the mark goes without shifting it. ── */
+  .warn {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: clamp(22px, 4vh, 44px);
+    width: max-content;
+    max-width: min(90vw, 470px);
+    padding: 22px 30px 20px;
+    border: 1px solid rgba(214,72,58,0.3);
+    background: rgba(11, 15, 21, 0.9);
+    backdrop-filter: blur(3px);
+    text-align: center;
+    pointer-events: auto;        /* the wrap is inert; this isn't */
+    z-index: 12;
+  }
+  .warn[hidden] { display: none; }
+  .warn-title {
+    font-family: 'Courier Prime', monospace;
+    font-size: 10px;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--red);
+    margin-bottom: 12px;
+  }
+  .warn-body {
+    font-family: 'Courier Prime', monospace;
+    font-size: 10.5px;
+    line-height: 1.9;
+    letter-spacing: 0.07em;
+    color: var(--steel);
+    margin-bottom: 18px;
+  }
+  .warn-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .warn-btn {
+    font-family: 'Courier Prime', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--steel);
+    background: none;
+    border: 1px solid rgba(147,168,184,0.3);
+    padding: 9px 16px;
+    cursor: pointer;
+    transition: color 160ms ease, border-color 160ms ease;
+  }
+  .warn-btn:hover, .warn-btn:focus-visible {
+    color: var(--red);
+    border-color: var(--line-bright);
+    outline: none;
+  }
+  .warn-btn-go { border-color: var(--line-bright); color: var(--red); }
+
+  /* Once you've answered, the choice stays marked and the plate gets
+     a way out — you close it yourself rather than having it vanish
+     from under you. */
+  .warn-btn[aria-pressed="true"] {
+    color: var(--red);
+    border-color: var(--line-bright);
+    box-shadow: inset 0 0 0 1px rgba(214,72,58,0.25);
+  }
+  .warn-close {
+    position: absolute;
+    top: 5px;
+    right: 10px;
+    background: none;
+    border: 0;
+    padding: 4px 6px;
+    font-family: 'Courier Prime', monospace;
+    font-size: 14px;
+    line-height: 1;
+    color: var(--steel-dim);
+    cursor: pointer;
+    transition: color 150ms ease;
+  }
+  .warn-close[hidden] { display: none; }
+  .warn-close:hover, .warn-close:focus-visible { color: var(--red); outline: none; }
+
+  /* It belongs to the landing; an open archive never shows it. */
+  body.viewing .warn { display: none; }
+
+  /* Calm mode — everything that strobes is stilled. The fireflies
+     keep their slow drift and their slow blink; those are seconds
+     apart, well under the flash threshold. */
+  body.calm .brandmark { opacity: 1 !important; }
+  body.calm .firefly-dot { animation: none !important; opacity: var(--peak, 0.75) !important; }
+  body.calm .key { animation: none !important; }
+  body.calm .tally.tally-bump .tally-dot { animation: none !important; }
+  body.calm .firefly-popping .firefly-dot { animation: none !important; opacity: 0 !important; }
+  body.calm .hint-dismissing { animation: none !important; opacity: 0 !important; }
+  body.calm.flicker-out .fireflies,
+  body.calm.flicker-out .gallery,
+  body.calm.flicker-in .fireflies,
+  body.calm.flicker-in .gallery { animation: none !important; }
+
+  /* ── Help mark — the tally's opposite number, bottom right. The
+     hints show themselves once and then leave; this is how you get
+     them back. Quiet until you look for it. ── */
+  .help {
+    position: fixed;
+    right: clamp(18px, 3vw, 40px);
+    bottom: clamp(18px, 3vh, 40px);
+    z-index: 6;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background: none;
+    border: 1px solid rgba(147,168,184,0.28);
+    border-radius: 50%;
+    font-family: 'Courier Prime', monospace;
+    font-size: 12px;
+    line-height: 1;
+    color: var(--steel-dim);
+    cursor: pointer;
+    transition: color 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+  }
+  .help:hover, .help:focus-visible {
+    color: var(--red);
+    border-color: var(--line-bright);
+    box-shadow: 0 0 10px rgba(214,71,58,0.3);
+    outline: none;
+  }
+  @media (max-width: 720px) { .help { display: none; } }
+
   /* ── First-look hint — bottom centre, out of the photograph's way,
      dim enough to ignore and gone the moment you press anything. The
      key caps are drawn, not typed: four small plates in the usual
@@ -685,12 +841,14 @@
     79%  { opacity: 0.6; }
     100% { opacity: 1; }
   }
-  body.flicker-out .brandmark-wrap,
+  /* The mark is deliberately NOT in these. Switching archives or
+     photographs flickers the field and the picture; the mark holds
+     steady through it and only ever flickers on its own account, the
+     way a bulb with a loose connection does. */
   body.flicker-out .fireflies,
   body.flicker-out .gallery {
     animation: flicker-out 460ms linear forwards;
   }
-  body.flicker-in .brandmark-wrap,
   body.flicker-in .fireflies,
   body.flicker-in .gallery {
     animation: flicker-in 420ms linear;
@@ -700,10 +858,8 @@
   body.viewing .fireflies { display: none; }
 
   @media (prefers-reduced-motion: reduce) {
-    body.flicker-out .brandmark-wrap,
     body.flicker-out .fireflies,
     body.flicker-out .gallery,
-    body.flicker-in .brandmark-wrap,
     body.flicker-in .fireflies,
     body.flicker-in .gallery { animation: none; }
   }
@@ -731,6 +887,21 @@
 
   <div class="brandmark-wrap">
     <span class="brandmark" id="brandmark">Hausofmemories</span>
+
+    <!-- Hangs directly under the mark. Shown once, before anything
+         flickers: the effects here flash faster than three times a
+         second in places, which is the threshold that matters for
+         photosensitive epilepsy — so it comes first, and offers a way
+         to turn the flashing off rather than only warning about it. -->
+    <div class="warn" id="warn" role="note" hidden>
+      <p class="warn-title">Flashing light</p>
+      <p class="warn-body">This archive uses flickering and strobing light.<br>If you are sensitive to flashing images, turn it down first.</p>
+      <div class="warn-actions">
+        <button class="warn-btn" id="warnCalm">Turn flashing down</button>
+        <button class="warn-btn warn-btn-go" id="warnGo">Continue</button>
+      </div>
+      <button class="warn-close" id="warnClose" aria-label="Close" hidden>&times;</button>
+    </div>
   </div>
 
   <!-- Photographs only. No collection title, no record fields, no
@@ -742,8 +913,11 @@
   <!-- Popped fireflies, this visit and all visits. -->
   <div class="tally" id="tally" aria-live="polite">
     <span class="tally-dot" aria-hidden="true"></span>
-    <span class="tally-nums"><span id="tallySession">000</span> / <span id="tallyMine">000</span><span id="tallyGlobalWrap" hidden> / <span id="tallyGlobal">0000</span></span></span>
+    <span class="tally-nums"><span id="tallySession">000</span> / <span id="tallyMine">000</span> / <span id="tallyGlobal">000</span></span>
   </div>
+
+  <!-- Brings the hints back once they've been dismissed. -->
+  <button class="help" id="help" aria-label="Show the controls">?</button>
 
   <div class="hint" id="hint" role="note">
     <div class="hint-keys" aria-hidden="true">
@@ -841,7 +1015,7 @@
        start an overlapping run. */
     let flickering = false;
     function flickerSwap(swap) {
-      if (reducedMotion) { swap(); return; }
+      if (reducedMotion || document.body.classList.contains('calm')) { swap(); return; }
       if (flickering) return;
       flickering = true;
       document.body.classList.add('flicker-out');
@@ -1026,6 +1200,64 @@
       if (ev.target && ev.target.tagName === 'IMG') ev.preventDefault();
     });
 
+    /* Flashing-light warning. Shown once per browser, and nothing
+       strobes until it's answered — the brand mark's flicker waits on
+       it, so the warning can't be beaten to the screen by the very
+       thing it's warning about. Choosing "turn it down" sets calm
+       mode, which is also on automatically for anyone whose system
+       asks for reduced motion. */
+    const CALM_KEY = 'hom.calm';
+    const WARNED_KEY = 'hom.warned';
+    let warningAnswered = false;
+
+    (function () {
+      const warn = document.getElementById('warn');
+      const goBtn = document.getElementById('warnGo');
+      const calmBtn = document.getElementById('warnCalm');
+
+      let calm = false, warned = false;
+      try {
+        calm = localStorage.getItem(CALM_KEY) === '1';
+        warned = localStorage.getItem(WARNED_KEY) === '1';
+      } catch (e) {}
+
+      if (calm || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        document.body.classList.add('calm');
+      }
+
+      const closeBtn = document.getElementById('warnClose');
+
+      /* Answering settles the choice and releases the flicker; it does
+         not snatch the plate away. The close mark appears once there
+         is something to close on, so you leave when you're ready. */
+      function answer(setCalm) {
+        document.body.classList.toggle('calm', !!setCalm);
+        try {
+          localStorage.setItem(CALM_KEY, setCalm ? '1' : '0');
+          localStorage.setItem(WARNED_KEY, '1');
+        } catch (e) {}
+        if (calmBtn) calmBtn.setAttribute('aria-pressed', String(!!setCalm));
+        if (goBtn) goBtn.setAttribute('aria-pressed', String(!setCalm));
+        if (closeBtn) closeBtn.hidden = false;
+        if (!warningAnswered) {
+          warningAnswered = true;
+          document.dispatchEvent(new CustomEvent('hom:warning-answered'));
+        }
+      }
+
+      if (warned || !warn) {
+        warningAnswered = true;
+      } else {
+        warn.hidden = false;
+        if (goBtn) goBtn.addEventListener('click', () => answer(false));
+        if (calmBtn) calmBtn.addEventListener('click', () => answer(true));
+        if (closeBtn) closeBtn.addEventListener('click', () => { warn.hidden = true; });
+      }
+
+      window.__calmOn = () => document.body.classList.contains('calm');
+      window.__warningPending = () => !warningAnswered;
+    })();
+
     /* Both hint plates behave the same way: they say their piece and
        get out of the way at the first sign of any interaction — a key,
        a click anywhere on the page, or their own close mark. One
@@ -1047,14 +1279,28 @@
         setTimeout(() => { plate.el.hidden = true; }, 480);
       }
 
+      function show(plate) {
+        if (!plate) return;
+        plate.done = false;
+        plate.el.classList.remove('hint-dismissing');
+        plate.el.hidden = false;
+      }
+
       function dismissAll() { plates.forEach(dismiss); }
 
-      // Any key, any click. Capture phase, so it still counts when the
-      // click lands on a firefly, a step arrow or the mark itself.
+      /* Any key dismisses, always. Clicks dismiss too — except the one
+         on the help mark, which is how you ask for these in the first
+         place. The guard is on clicks only: focus stays on that button
+         after it's pressed, so guarding keys by event target would
+         have made every later keypress look like it came from the
+         help mark, and the hint would never close again. */
       document.addEventListener('keydown', dismissAll, true);
-      document.addEventListener('click', dismissAll, true);
+      document.addEventListener('click', (ev) => {
+        if (ev.target && ev.target.closest && ev.target.closest('.help')) return;
+        dismissAll();
+      }, true);
 
-      return { register, dismiss, dismissAll };
+      return { register, dismiss, dismissAll, show };
     })();
 
     const landingHint = hints.register(document.getElementById('hint'));
@@ -1065,6 +1311,19 @@
       const b = document.getElementById('hintArchiveClose');
       if (a) a.addEventListener('click', () => hints.dismiss(landingHint));
       if (b) b.addEventListener('click', () => hints.dismiss(archiveHint));
+
+      /* The help mark brings back whichever hint belongs to where you
+         are: the archive one if an archive is open, the landing one
+         otherwise. */
+      const helpBtn = document.getElementById('help');
+      if (helpBtn) {
+        helpBtn.addEventListener('click', () => {
+          if (window.matchMedia('(max-width: 720px)').matches) return;
+          const inArchive = !document.getElementById('gallery').classList.contains('gallery-hidden');
+          hints.show(inArchive ? archiveHint : landingHint);
+          helpBtn.blur();
+        });
+      }
 
       // Shown the first time an archive opens, never again after.
       window.__showArchiveHint = function () {
@@ -1081,6 +1340,15 @@
     (function () {
       const mark = document.getElementById('brandmark');
       if (!mark || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      if (window.__calmOn && window.__calmOn()) return;
+      // Hold until the warning has been answered — it exists to be read
+      // before anything strobes.
+      if (window.__warningPending && window.__warningPending()) {
+        document.addEventListener('hom:warning-answered', () => {
+          if (!(window.__calmOn && window.__calmOn())) schedule();
+        }, { once: true });
+        return;
+      }
 
       function rand(min, max) { return Math.random() * (max - min) + min; }
 
@@ -1148,7 +1416,6 @@
       const tallySessionEl = document.getElementById('tallySession');
       const tallyMineEl = document.getElementById('tallyMine');
       const tallyGlobalEl = document.getElementById('tallyGlobal');
-      const tallyGlobalWrap = document.getElementById('tallyGlobalWrap');
       let tallySession = 0;
       let tallyLocal = 0;
       let tallyAll = 0;
@@ -1157,18 +1424,20 @@
       try { tallyLocal = parseInt(localStorage.getItem(TALLY_KEY), 10) || 0; } catch (e) { tallyLocal = 0; }
       tallyAll = tallyLocal;
 
-      /* Three numbers: this visit, everything you've ever put out, and
-         the count across every visitor. The third only appears once
-         the shared store is answering — better to show two honest
-         numbers than a third that's quietly just your own again. */
+      /* Three numbers, always: this visit / yours all told / everyone's.
+         The third is the shared count from /api/tally. Until that store
+         is connected there is no shared number to show, so it tracks
+         your own total rather than sitting at zero looking broken —
+         the tooltip says which of the two you're looking at. It
+         becomes the real global the moment the store answers. */
       function paintTally() {
-        if (tallySessionEl) tallySessionEl.textContent = String(tallySession).padStart(3, '0');
-        if (tallyMineEl) tallyMineEl.textContent = String(tallyLocal).padStart(3, '0');
-        if (tallyGlobalEl) tallyGlobalEl.textContent = String(tallyAll).padStart(4, '0');
-        if (tallyGlobalWrap) tallyGlobalWrap.hidden = !tallyShared;
+        const pad = n => String(n).padStart(3, '0');
+        if (tallySessionEl) tallySessionEl.textContent = pad(tallySession);
+        if (tallyMineEl) tallyMineEl.textContent = pad(tallyLocal);
+        if (tallyGlobalEl) tallyGlobalEl.textContent = pad(tallyShared ? tallyAll : tallyLocal);
         if (tallyEl) tallyEl.title = tallyShared
           ? 'This visit / yours all told / every firefly ever put out here'
-          : 'This visit / yours all told';
+          : 'This visit / yours all told / everyone\u2019s (not connected yet \u2014 showing yours)';
       }
 
       function flare() {
@@ -1362,6 +1631,78 @@
       }
 
       ARCHIVE_COLLECTIONS.forEach((col, i) => spawn(col, i));
+
+      /* One firefly that isn't an archive at all. It stays out of the
+         field until someone finds the key for it — shift-cmd-space, or
+         shift-ctrl-space away from a Mac. Nothing on the site mentions
+         it: the hints don't list it and it leaves no trace when it's
+         put away. Pressing again hides it. */
+      let linkFly = null;
+
+      function makeLinkFly() {
+        const a = document.createElement('a');
+        a.className = 'firefly firefly-link';
+        a.href = 'https://www.hpntk.co/';
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.setAttribute('aria-label', 'HPNTK (opens in a new tab)');
+        a.style.setProperty('--x', rand(REGION.xMin + 6, REGION.xMax - 6).toFixed(2) + '%');
+        a.style.setProperty('--y', rand(REGION.yMin + 4, REGION.yMax - 4).toFixed(2) + '%');
+        a.style.setProperty('--size', rand(3.5, 5.5).toFixed(1) + 'px');
+        if (!reduced) {
+          a.style.setProperty('--dx1', rand(15, 45).toFixed(0) + 'px');
+          a.style.setProperty('--dy1', rand(-40, -10).toFixed(0) + 'px');
+          a.style.setProperty('--dx2', rand(-30, -10).toFixed(0) + 'px');
+          a.style.setProperty('--dy2', rand(-60, -25).toFixed(0) + 'px');
+          a.style.setProperty('--dx3', rand(-45, -15).toFixed(0) + 'px');
+          a.style.setProperty('--dy3', rand(5, 25).toFixed(0) + 'px');
+          a.style.setProperty('--dur', rand(16, 30).toFixed(1) + 's');
+          a.style.setProperty('--delay', rand(0, -20).toFixed(1) + 's');
+          a.style.setProperty('--blink-dur', rand(3, 6.5).toFixed(1) + 's');
+          a.style.setProperty('--blink-delay', rand(0, -6).toFixed(1) + 's');
+        }
+        a.style.setProperty('--peak', rand(0.7, 0.95).toFixed(2));
+
+        const spin = document.createElement('span');
+        spin.className = 'firefly-spin';
+        const dot = document.createElement('span');
+        dot.className = 'firefly-dot';
+        spin.appendChild(dot);
+        const label = document.createElement('span');
+        label.className = 'firefly-label';
+        label.textContent = 'HPNTK';
+        a.appendChild(spin);
+        a.appendChild(label);
+        return a;
+      }
+
+      /* Shift with an arrow blows it in from that edge — the arrow says
+         where the wind comes from, same as every other gust, so it
+         arrives carried on one. The gust itself still fires, so the
+         whole swarm moves as it lands. Once it's here, further gusts
+         just blow it around with the rest. */
+      document.addEventListener('keydown', (ev) => {
+        if (!ev.shiftKey || ev.metaKey || ev.ctrlKey || ev.altKey) return;
+        const dir = FROM[ev.key];
+        if (!dir) return;
+        if (linkFly) return;              // already here — let it just be blown about
+        const [ux, uy] = dir;
+
+        linkFly = makeLinkFly();
+        // start well off the windward edge, then ride in
+        const entry = Math.max(window.innerWidth, window.innerHeight) + 200;
+        linkFly.style.transitionProperty = 'translate';
+        linkFly.style.transitionTimingFunction = 'cubic-bezier(0.16, 0.82, 0.28, 1)';
+        linkFly.style.transitionDuration = '0ms';
+        linkFly.style.translate = (-ux * entry) + 'px ' + (-uy * entry) + 'px';
+        layerSteer.appendChild(linkFly);
+
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          if (!linkFly) return;
+          linkFly.style.transitionDuration = rand(1500, 2300).toFixed(0) + 'ms';
+          linkFly.style.translate = '0px 0px';
+        }));
+      }, true);
 
       /* Arrow keys are wind. The arrow says where the gust comes FROM,
          so Left blows the swarm to the right. It catches the amber
