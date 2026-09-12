@@ -330,6 +330,11 @@
     height: auto;
     object-fit: contain;
     display: block;
+    /* -webkit-touch-callout blocks the long-press save sheet on iOS;
+       user-drag blocks dragging the file straight out to the desktop. */
+    -webkit-touch-callout: none;
+    -webkit-user-drag: none;
+    user-select: none;
   }
 
   /* One line under the picture: where you are in the archive, and
@@ -506,6 +511,9 @@
   </div>
 
   <script>
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    document.addEventListener('dragstart', e => e.preventDefault());
+
     // Reads directly from archive-data.js — add a collection or an
     // entry there and it shows up here on refresh, nothing to edit
     // in this file.
