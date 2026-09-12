@@ -88,9 +88,21 @@
     pointer-events: none;
     user-select: none;
   }
+  /* Once an archive is open the mark gets out of the way: off to the
+     top right at a smaller size, so the photograph is the thing on
+     screen. align-self overrides body's align-items: center for this
+     one item only. */
   body.viewing .brandmark-wrap {
-    padding-top: clamp(40px, 7vh, 86px);
-    margin-bottom: clamp(24px, 4vh, 52px);
+    align-self: flex-end;
+    padding-top: clamp(20px, 3vh, 36px);
+    padding-right: clamp(48px, 7vw, 120px);
+    margin-bottom: clamp(14px, 2.4vh, 30px);
+  }
+  body.viewing .brandmark {
+    font-size: 15px;
+    letter-spacing: 0.3em;
+    margin-right: -0.3em;
+    text-shadow: 0 0 2px rgba(255,255,255,0.85), 0 0 8px rgba(255,255,255,0.4), 0 0 20px rgba(255,255,255,0.2);
   }
 
   .brandmark {
@@ -147,10 +159,26 @@
        behind everything while still reachable by the pointer. */
     z-index: 0;
   }
+  /* Everything lives on this layer rather than on .fireflies itself,
+     so the arrow keys can move the whole swarm without dragging the
+     clipping box with it. Each orb keeps its own drift on top of
+     wherever the layer has been steered to. */
+  .firefly-layer {
+    position: absolute;
+    inset: 0;
+  }
+
   .firefly {
     position: absolute;
     left: var(--x, 50%);
     top: var(--y, 50%);
+    /* `translate` is a separate property from `transform`, so a gust
+       can shove the orb around while its drift keyframes keep
+       animating `transform` underneath. Per-orb timing comes from JS
+       so no two get caught by one gust the same way. */
+    translate: 0px 0px;
+    rotate: 0deg;
+    will-change: translate, rotate;
     width: 26px;
     height: 26px;
     margin: -13px 0 0 -13px;
@@ -176,7 +204,7 @@
     opacity: 0;
     animation: firefly-blink var(--blink-dur, 4.5s) ease-in-out infinite;
     animation-delay: var(--blink-delay, 0s);
-    transition: opacity 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+    transition: opacity 150ms ease, transform 150ms ease, box-shadow 150ms ease, translate 600ms ease;
   }
   .firefly:hover .firefly-dot,
   .firefly:focus-visible .firefly-dot {
@@ -184,6 +212,40 @@
     transform: scale(1.8);
     box-shadow: 0 0 6px 2px rgba(244,217,152,0.95), 0 0 18px 8px rgba(244,217,152,0.5);
   }
+  /* An archive with nothing in it yet burns red instead of warm
+     amber — readable at a glance across the whole field, without
+     any label. It goes amber on its own the moment photographs
+     exist in that archive. */
+  .firefly-empty .firefly-dot {
+    background: var(--red);
+    box-shadow: 0 0 4px 1px rgba(214,71,58,0.9), 0 0 12px 4px rgba(214,71,58,0.4);
+  }
+  .firefly-empty { cursor: default; }
+  .firefly-empty:hover .firefly-dot,
+  .firefly-empty:focus-visible .firefly-dot {
+    box-shadow: 0 0 6px 2px rgba(214,71,58,0.95), 0 0 18px 8px rgba(214,71,58,0.55);
+  }
+
+  /* Clicking an empty one pops it — a quick bright flare, then out,
+     like a bulb giving up. It leaves the field for good (until a
+     reload); there's nothing behind it to open. */
+  @keyframes firefly-pop {
+    0%   { transform: scale(1);   opacity: 1; }
+    28%  { transform: scale(3.2); opacity: 1; }
+    55%  { transform: scale(2.1); opacity: 0.85; }
+    100% { transform: scale(0.1); opacity: 0; }
+  }
+  .firefly-popping { pointer-events: none; }
+  .firefly-popping .firefly-dot {
+    animation: firefly-pop 400ms cubic-bezier(0.2, 0.75, 0.3, 1) forwards !important;
+    background: #ffd9cf;
+    box-shadow: 0 0 8px 3px rgba(255,180,160,0.95), 0 0 26px 12px rgba(214,71,58,0.6);
+  }
+  .firefly-popping .firefly-label { opacity: 0 !important; }
+  @media (prefers-reduced-motion: reduce) {
+    .firefly-popping .firefly-dot { animation: none !important; opacity: 0 !important; }
+  }
+
   .firefly-label {
     position: absolute;
     left: 50%;
@@ -270,8 +332,8 @@
     display: block;
   }
 
-  /* One line under the picture: where you are, and the only offer
-     on the page. Small, wide-tracked, dim until wanted. */
+  /* One line under the picture: where you are in the archive, and
+     nothing else. Small, wide-tracked, dim. */
   .gallery-meta {
     flex: 0 0 auto;
     display: flex;
@@ -286,19 +348,6 @@
     color: var(--steel-dim);
   }
   .gallery-count { font-variant-numeric: tabular-nums; }
-  .gallery-buy {
-    color: var(--steel-dim);
-    text-decoration: none;
-    border-bottom: 1px solid rgba(147,168,184,0.28);
-    padding-bottom: 3px;
-    transition: color 180ms ease, border-color 180ms ease, text-shadow 180ms ease;
-  }
-  .gallery-buy:hover {
-    color: var(--red);
-    border-color: var(--line-bright);
-    text-shadow: var(--glow-text-soft);
-  }
-
   /* Step arrows — at the outer edges, well clear of the picture, and
      nearly invisible until the pointer is near them. Arrow keys do
      the same thing. */
@@ -516,11 +565,9 @@
       stage.innerHTML = e.image
         ? `<img class="pic" src="${e.image}" alt="" />`
         : '<p class="stage-empty">Not yet archived</p>';
-      // No print offered for a record whose photograph isn't in the
-      // archive yet — there is nothing to sell or show.
+      // Position only. No print offer — that page is gone.
       meta.innerHTML = `
         <span class="gallery-count">${String(i + 1).padStart(2, '0')} / ${String(shown.length).padStart(2, '0')}</span>
-        ${e.image ? `<a class="gallery-buy" href="item.html?id=${e.id}">Order a Print</a>` : ''}
       `;
       // Only offer the steps when there is somewhere to step to.
       const many = shown.length > 1;
@@ -622,12 +669,33 @@
     // .fireflies in the CSS) so it never affects page height or
     // causes scrolling.
     (function () {
-      const field = document.getElementById('fireflies');
-      if (!field || typeof ARCHIVE_COLLECTIONS === 'undefined') return;
+      const fieldOuter = document.getElementById('fireflies');
+      if (!fieldOuter || typeof ARCHIVE_COLLECTIONS === 'undefined') return;
+      /* Two layers: the empty red ones stay where they are, the amber
+         ones with archives behind them are the swarm you steer. Same
+         clipping box, so nothing else changes. */
+      const layerStill = document.createElement('div');
+      layerStill.className = 'firefly-layer';
+      const layerSteer = document.createElement('div');
+      layerSteer.className = 'firefly-layer firefly-layer-steer';
+      fieldOuter.appendChild(layerStill);
+      fieldOuter.appendChild(layerSteer);
       const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
       function rand(min, max) { return Math.random() * (max - min) + min; }
       function clamp(v, min, max) { return Math.min(max, Math.max(min, v)); }
+
+      // Popped, but not gone for good — it comes back somewhere else
+      // in its own cell after a random wait, so the field keeps
+      // shifting rather than emptying out as you click through it.
+      function popFirefly(f, col, i) {
+        if (f.classList.contains('firefly-popping')) return;
+        f.classList.add('firefly-popping');
+        setTimeout(() => {
+          f.remove();
+          setTimeout(() => spawn(col, i), rand(5000, 18000));
+        }, 420);
+      }
 
       // Clustered around the brand mark rather than spread
       // edge-to-edge, so they read as orbiting the hero text.
@@ -665,19 +733,23 @@
       const cellW = (REGION.xMax - REGION.xMin) / cols;
       const cellH = (REGION.yMax - REGION.yMin) / rows;
 
-      ARCHIVE_COLLECTIONS.forEach((col, i) => {
+      function spawn(col, i) {
         const cellX = REGION.xMin + (i % cols) * cellW + cellW / 2;
         const cellY = REGION.yMin + Math.floor(i / cols) * cellH + cellH / 2;
         const x = clamp(cellX + rand(-cellW * 0.35, cellW * 0.35), REGION.xMin - 3, REGION.xMax + 3);
         const y = clamp(cellY + rand(-cellH * 0.35, cellH * 0.35), REGION.yMin - 3, REGION.yMax + 3);
         const archiveNum = String(i + 1).padStart(4, '0');
 
+        // Empty archive -> red. Driven off the actual entries, so it
+        // flips to amber by itself as soon as photographs land in it.
+        const hasPhotos = entries.some(e => e.collection === col.key);
+
         const f = document.createElement('div');
-        f.className = 'firefly';
+        f.className = hasPhotos ? 'firefly' : 'firefly firefly-empty';
         f.dataset.key = col.key;
         f.tabIndex = 0;
         f.setAttribute('role', 'button');
-        f.setAttribute('aria-label', `Open Archive ${archiveNum}`);
+        f.setAttribute('aria-label', hasPhotos ? `Open Archive ${archiveNum}` : `Archive ${archiveNum}, empty`);
         f.style.setProperty('--x', `${x.toFixed(2)}%`);
         f.style.setProperty('--y', `${y.toFixed(2)}%`);
 
@@ -707,16 +779,111 @@
 
         f.appendChild(dot);
         f.appendChild(label);
-        field.appendChild(f);
+        (hasPhotos ? layerSteer : layerStill).appendChild(f);
 
-        f.addEventListener('click', () => openCollection(col.key));
+        // A filled archive opens. An empty one has nothing behind it,
+        // so it pops instead and leaves the field.
+        const act = hasPhotos
+          ? () => openCollection(col.key)
+          : () => popFirefly(f, col, i);
+        f.addEventListener('click', act);
         f.addEventListener('keydown', (ev) => {
-          if (ev.key === 'Enter' || ev.key === ' ') {
-            ev.preventDefault();
-            openCollection(col.key);
-          }
+          if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); act(); }
         });
+      }
+
+      ARCHIVE_COLLECTIONS.forEach((col, i) => spawn(col, i));
+
+      /* Arrow keys are wind. The arrow says where the gust comes FROM,
+         so Left blows the swarm to the right. Only the amber ones —
+         archives with photographs — get caught by it.
+
+         A gust, not a pan: the wind sweeps across the field so orbs on
+         the windward side are hit first, each takes a different amount
+         of push plus sideways turbulence, and then they drift back
+         over a second or three at their own pace. Nothing snaps, and
+         nothing moves together. */
+      const galleryEl = document.getElementById('gallery');
+      const FROM = {
+        ArrowLeft:  [ 1,  0],
+        ArrowRight: [-1,  0],
+        ArrowUp:    [ 0,  1],
+        ArrowDown:  [ 0, -1]
+      };
+
+      function gust(ux, uy) {
+        /* Every gust is its own weather. One press might be a light
+           breath, the next a real shove — and wind is patchy, so some
+           orbs sit in still air and aren't caught at all. */
+        const force  = rand(0.5, 1.6);    // how hard this particular gust blows
+        const sweep  = rand(110, 480);    // how fast it crosses the field
+        const churn  = rand(6, 26);       // how turbulent it is
+        const miss   = rand(0.05, 0.3);   // share of orbs it passes over
+
+        layerSteer.querySelectorAll('.firefly').forEach((f) => {
+          if (Math.random() < miss) return;
+          const r = f.getBoundingClientRect();
+          // how far downwind it sits — decides when the gust reaches it
+          const along = ux !== 0
+            ? (ux > 0 ? r.left / window.innerWidth : 1 - r.left / window.innerWidth)
+            : (uy > 0 ? r.top / window.innerHeight : 1 - r.top / window.innerHeight);
+          const hit = along * sweep;
+          const push = rand(26, 72) * force;
+          const cross = rand(-churn, churn);
+          const gx = ux !== 0 ? ux * push : cross;
+          const gy = uy !== 0 ? uy * push : cross;
+
+          /* Caught and spun. The dot swings out from its own centre
+             and the orb turns, so the pair reads as a twirl rather
+             than a spin-in-place — a circle rotating on the spot
+             would look like nothing at all. The angle accumulates and
+             is never wound back, so it always turns forwards; the
+             swing radius returns to zero, so it spirals back in and
+             settles instead of stopping dead. */
+          const spin = (Number(f.dataset.spin) || 0) + rand(14, 70) * force * (Math.random() < 0.5 ? -1 : 1);
+          f.dataset.spin = spin;
+          const swing = rand(2, 6.5);
+          const blow = rand(420, 780);
+
+          f.style.transitionProperty = 'translate, rotate';
+          f.style.transitionTimingFunction = 'cubic-bezier(0.33, 0.6, 0.4, 1)';
+          f.style.transitionDuration = blow.toFixed(0) + 'ms';
+          f.style.transitionDelay = hit.toFixed(0) + 'ms';
+          f.style.translate = gx.toFixed(1) + 'px ' + gy.toFixed(1) + 'px';
+          f.style.rotate = spin.toFixed(0) + 'deg';
+
+          const dotEl = f.querySelector('.firefly-dot');
+          if (dotEl) {
+            dotEl.style.transitionDuration = blow.toFixed(0) + 'ms';
+            dotEl.style.transitionDelay = hit.toFixed(0) + 'ms';
+            dotEl.style.translate = swing.toFixed(1) + 'px 0px';
+          }
+
+          setTimeout(() => {
+            const settle = rand(2200, 4600);
+            f.style.transitionTimingFunction = 'cubic-bezier(0.25, 0.55, 0.3, 1)';
+            f.style.transitionDuration = settle.toFixed(0) + 'ms';
+            f.style.transitionDelay = '0ms';
+            f.style.translate = '0px 0px';
+            // keeps turning a little as it comes back, then rests
+            f.style.rotate = (spin + rand(4, 22) * Math.sign(spin || 1)).toFixed(0) + 'deg';
+            if (dotEl) {
+              dotEl.style.transitionDuration = settle.toFixed(0) + 'ms';
+              dotEl.style.transitionDelay = '0ms';
+              dotEl.style.translate = '0px 0px';
+            }
+          }, hit + rand(520, 1000));
+        });
+      }
+
+      document.addEventListener('keydown', (ev) => {
+        if (!galleryEl || !galleryEl.classList.contains('gallery-hidden')) return;
+        const dir = FROM[ev.key];
+        if (!dir) return;
+        ev.preventDefault();
+        if (!reduced) gust(dir[0], dir[1]);
       });
+
     })();
   </script>
 </body>

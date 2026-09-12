@@ -1,315 +1,295 @@
 /* archive-data.js — Haus of Memories Archive
    ============================================================
-   This is the single source of truth for the archive: collections
-   and archive entries. archive.html, collection.html, item.html,
-   and shop.html all read from ARCHIVE_COLLECTIONS / ARCHIVE_ENTRIES
-   below and render themselves — you should never need to hand-edit
-   HTML to add a photograph.
+   Generated from the contents of /images. Each numbered folder in
+   /images IS an archive — images/0001/, images/0002/, and so on.
+   There are no category names: an archive is simply what's in it.
 
-   ── ADDING A NEW PHOTOGRAPH ──
-   1. Drop the image file in /images/<collection-key>/ (keep the
-      original file — do not crop, stretch, recolor, or upscale it).
-   2. Check its actual pixel dimensions (Preview/Finder "Get Info",
-      or `sips -g pixelWidth -g pixelHeight file.jpg` on a Mac).
-   3. Pull whatever EXIF exists (date, camera) with Finder's Info
-      panel, Photos app, or `exiftool file.jpg`. If a field isn't
-      there, leave it as null / "Unknown" below — never guess.
-   4. Never store exact GPS coordinates here. generalLocation should
-      always be a city/area, not an address or lat/long.
-   5. Copy one of the entries below, give it the next sequential
-      Archive ID — zero-padded numbers, no prefix (000007, 000008...)
-      — fill in what you actually know, and set `image` to the file
-      path. Print sizes and pricing are derived automatically from
-      width/height — you don't set them by hand.
-
-   The entries currently below are PLACEHOLDER / SAMPLE records so
-   the site has something to render — they are not real photographs.
-   Swap them out (or delete them) as real archive entries go in.
+   ── ADDING PHOTOGRAPHS ──
+   1. Make a new numbered folder under /images (next number up), or
+      drop files into an existing one. Keep the original file — do
+      not crop, stretch, recolor, or upscale it.
+   2. Every field below is read from the file itself: real pixel
+      dimensions, and the capture date and camera from EXIF where
+      the file carries them. Anything the file doesn't state stays
+      null and renders as "Unknown" — never guessed.
+   3. Exact GPS is never stored here. generalLocation is a city or
+      area or nothing at all — never an address or coordinates.
+   4. Print sizes and pricing are derived from width/height at
+      300 DPI — you don't set them by hand.
    ============================================================ */
 
-/* ── Collections ──
-   `status: 'live'` collections appear as browsable; `'coming-soon'`
-   collections show on the Archive page as a preview of what's next
-   but have no entries yet. Add a new collection here any time —
-   entries reference it by `key`. */
+/* ── Archives ──
+   The firefly count on the landing page is exactly the length of this
+   list. The first entries have folders under /images and photographs
+   in them; the rest are empty slots waiting to be filled, which show
+   as red fireflies you can't open.
+
+   NOTE: an archive counts as "filled" purely by having entries below,
+   not by this status field — make images/0005/ and add its
+   photographs and that firefly turns amber on its own. */
 const ARCHIVE_COLLECTIONS = [
-  {
-    key: 'graffiti',
-    name: 'Rural Artwork',
-    tagline: 'Work found on walls and surfaces out past the city, photographed where it stands.',
-    status: 'live'
-  },
-  {
-    key: 'trains',
-    name: 'Trains',
-    tagline: 'Freight cars, yards, and the marks that travel with them.',
-    status: 'coming-soon'
-  },
-  {
-    key: 'architecture',
-    name: 'Architecture',
-    tagline: 'Buildings and structures worth remembering before they change.',
-    status: 'coming-soon'
-  },
-  {
-    key: 'abandoned',
-    name: 'Abandoned Places',
-    tagline: 'Spaces left behind, still holding their shape.',
-    status: 'coming-soon'
-  },
-  {
-    key: 'signs',
-    name: 'Signs & Street Typography',
-    tagline: 'Hand-painted and found lettering from the everyday city.',
-    status: 'coming-soon'
-  },
-  {
-    key: 'murals',
-    name: 'Murals',
-    tagline: 'Sanctioned and unsanctioned large-scale work.',
-    status: 'coming-soon'
-  },
-  {
-    key: 'fences',
-    name: 'Chain-Link & Fences',
-    tagline: 'Found marks on chain-link, wood, and wire — the boundary lines of a place.',
-    status: 'coming-soon'
-  },
-  {
-    key: 'overpasses',
-    name: 'Underpasses & Overpasses',
-    tagline: 'Where the city passes over itself, and what collects underneath.',
-    status: 'coming-soon'
-  },
-  {
-    key: 'industrial',
-    name: 'Loading Docks & Industrial',
-    tagline: 'The working edges of the city — docks, warehouses, and the marks they carry.',
-    status: 'coming-soon'
-  },
-  {
-    key: 'drains',
-    name: 'Storm Drains & Concrete',
-    tagline: 'Concrete channels and drainage — surfaces the city rarely looks at twice.',
-    status: 'coming-soon'
-  },
-  {
-    key: 'alleys',
-    name: 'Alleyways',
-    tagline: 'The spaces between buildings, held onto before they change.',
-    status: 'coming-soon'
-  },
-  {
-    key: 'night',
-    name: 'Night Photography',
-    tagline: 'What the city looks like after most of it has gone home.',
-    status: 'coming-soon'
-  },
-  {
-    key: 'objects',
-    name: 'Found Objects',
-    tagline: 'Things left behind, photographed where they were found.',
-    status: 'coming-soon'
-  },
-  {
-    key: 'landscapes',
-    name: 'Landscapes & Transient Moments',
-    tagline: 'Skies, light, and moments that exist once.',
-    status: 'coming-soon'
-  },
-  {
-    key: 'disappearing',
-    name: 'Disappearing Places',
-    tagline: 'Spaces on their way to becoming something else, or nothing at all.',
-    status: 'coming-soon'
-  },
-  {
-    key: 'rooftops',
-    name: 'Rooftops',
-    tagline: 'Views the ground level never shows.',
-    status: 'coming-soon'
-  },
-  {
-    key: 'doorways',
-    name: 'Doorways',
-    tagline: 'Entrances, thresholds, and what they lead to.',
-    status: 'coming-soon'
-  },
-  {
-    key: 'windows',
-    name: 'Windows',
-    tagline: 'What a window frames, on either side of the glass.',
-    status: 'coming-soon'
-  },
-  {
-    key: 'stairwells',
-    name: 'Stairwells',
-    tagline: 'In-between spaces, usually passed through without a second look.',
-    status: 'coming-soon'
-  },
-  {
-    key: 'parking',
-    name: 'Parking Structures',
-    tagline: 'Concrete, striping, and the geometry of holding cars.',
-    status: 'coming-soon'
-  },
-  {
-    key: 'bridges',
-    name: 'Bridges',
-    tagline: 'Crossings, and what gathers underneath them.',
-    status: 'coming-soon'
-  },
-  {
-    key: 'neon',
-    name: 'Neon & Signage Lights',
-    tagline: 'Lit signs, old and new, and the glow they leave on a street.',
-    status: 'coming-soon'
-  },
-  {
-    key: 'relics',
-    name: 'Payphones & Relics',
-    tagline: 'Leftover technology, still standing after its purpose ended.',
-    status: 'coming-soon'
-  },
-  {
-    key: 'storefronts',
-    name: 'Storefronts',
-    tagline: 'Shopfronts, open and shuttered, as the street changes around them.',
-    status: 'coming-soon'
-  },
-  {
-    key: 'sidewalks',
-    name: 'Sidewalks & Pavement',
-    tagline: 'What collects on the ground — cracks, stains, stencils, wear.',
-    status: 'coming-soon'
-  },
-  {
-    key: 'skies',
-    name: 'Skies & Weather',
-    tagline: 'The sky above whatever else is being documented.',
-    status: 'coming-soon'
-  },
-  {
-    key: 'utility',
-    name: 'Water Towers & Utility',
-    tagline: 'The infrastructure that keeps a city running, rarely photographed on purpose.',
-    status: 'coming-soon'
-  },
-  {
-    key: 'vacant',
-    name: 'Vacant Lots',
-    tagline: 'Empty parcels, waiting to become something else.',
-    status: 'coming-soon'
-  },
-  {
-    key: 'billboards',
-    name: 'Billboards & Advertising',
-    tagline: 'Large-format advertising and the messages plastered across a changing skyline.',
-    status: 'coming-soon'
-  },
-  {
-    key: 'construction',
-    name: 'Construction Sites',
-    tagline: 'Scaffolding, cranes, and a city caught mid-change.',
-    status: 'coming-soon'
-  }
+  { key: '0001', name: 'Archive 0001', tagline: null, status: 'live' },
+  { key: '0002', name: 'Archive 0002', tagline: null, status: 'live' },
+  { key: '0003', name: 'Archive 0003', tagline: null, status: 'live' },
+  { key: '0004', name: 'Archive 0004', tagline: null, status: 'live' },
+  { key: '0005', name: 'Archive 0005', tagline: null, status: 'empty' },
+  { key: '0006', name: 'Archive 0006', tagline: null, status: 'empty' },
+  { key: '0007', name: 'Archive 0007', tagline: null, status: 'empty' },
+  { key: '0008', name: 'Archive 0008', tagline: null, status: 'empty' },
+  { key: '0009', name: 'Archive 0009', tagline: null, status: 'empty' },
+  { key: '0010', name: 'Archive 0010', tagline: null, status: 'empty' },
+  { key: '0011', name: 'Archive 0011', tagline: null, status: 'empty' },
+  { key: '0012', name: 'Archive 0012', tagline: null, status: 'empty' },
+  { key: '0013', name: 'Archive 0013', tagline: null, status: 'empty' },
+  { key: '0014', name: 'Archive 0014', tagline: null, status: 'empty' },
+  { key: '0015', name: 'Archive 0015', tagline: null, status: 'empty' },
+  { key: '0016', name: 'Archive 0016', tagline: null, status: 'empty' },
+  { key: '0017', name: 'Archive 0017', tagline: null, status: 'empty' },
+  { key: '0018', name: 'Archive 0018', tagline: null, status: 'empty' },
+  { key: '0019', name: 'Archive 0019', tagline: null, status: 'empty' },
+  { key: '0020', name: 'Archive 0020', tagline: null, status: 'empty' },
+  { key: '0021', name: 'Archive 0021', tagline: null, status: 'empty' },
+  { key: '0022', name: 'Archive 0022', tagline: null, status: 'empty' },
+  { key: '0023', name: 'Archive 0023', tagline: null, status: 'empty' },
+  { key: '0024', name: 'Archive 0024', tagline: null, status: 'empty' },
+  { key: '0025', name: 'Archive 0025', tagline: null, status: 'empty' },
+  { key: '0026', name: 'Archive 0026', tagline: null, status: 'empty' },
+  { key: '0027', name: 'Archive 0027', tagline: null, status: 'empty' },
+  { key: '0028', name: 'Archive 0028', tagline: null, status: 'empty' },
+  { key: '0029', name: 'Archive 0029', tagline: null, status: 'empty' },
+  { key: '0030', name: 'Archive 0030', tagline: null, status: 'empty' }
 ];
 
 /* ── Archive Entries ──
-   Fields left as null render as "Unknown" — never invented.
-   `image: null` renders a placeholder tile (aspect-ratio matched
-   to width/height so layout is still accurate) until a real file
-   is added. */
+   Fields left as null render as "Unknown" — never invented. Width
+   and height are the photograph's true pixel dimensions with EXIF
+   orientation applied, which is what the print sizes are computed
+   from. */
 const ARCHIVE_ENTRIES = [
   {
     id: '000001',
-    title: 'Freight Car, East Yard',
-    collection: 'graffiti',
-    datePhotographed: '2024-06-02',
+    title: null,
+    collection: '0001',
+    datePhotographed: '2020-12-13',
     generalLocation: 'Phoenix, AZ',
-    medium: 'Freight car / spray paint',
-    condition: 'Car status since photographed — unknown',
-    camera: 'iPhone 13 Pro',
+    medium: null,
+    condition: null,
+    camera: 'iPhone 11',
     width: 4032,
-    height: 3024,
-    editionType: 'limited',
-    editionSize: 25,
-    image: null
+    height: 2268,
+    editionType: null,
+    editionSize: null,
+    image: 'images/0001/096D5BC9-16F4-451E-B5A1-B28A91F49244.jpg'
   },
   {
     id: '000002',
-    title: 'Underpass, 7th Street',
-    collection: 'graffiti',
-    datePhotographed: null,
-    generalLocation: 'Phoenix, AZ',
-    medium: 'Wall / spray paint',
-    condition: 'Painted over, spring 2025',
-    camera: null,
-    width: 3024,
+    title: null,
+    collection: '0001',
+    datePhotographed: '2020-08-01',
+    generalLocation: null,
+    medium: null,
+    condition: null,
+    camera: 'iPhone 11',
+    width: 2268,
     height: 4032,
-    editionType: 'open',
+    editionType: null,
     editionSize: null,
-    image: null
+    image: 'images/0001/IMG_6301.JPG'
   },
   {
     id: '000003',
-    title: 'Boxcar Tag, No. 2',
-    collection: 'graffiti',
-    datePhotographed: '2024-09-14',
-    generalLocation: 'Tempe, AZ',
-    medium: 'Freight car / marker and spray paint',
-    condition: 'Unknown',
-    camera: 'iPhone 13 Pro',
+    title: null,
+    collection: '0001',
+    datePhotographed: '2020-10-03',
+    generalLocation: null,
+    medium: null,
+    condition: null,
+    camera: 'iPhone 11',
     width: 4032,
-    height: 3024,
-    editionType: 'limited',
-    editionSize: 25,
-    image: null
+    height: 2268,
+    editionType: null,
+    editionSize: null,
+    image: 'images/0001/IMG_7531.JPG'
   },
   {
     id: '000004',
-    title: 'Alley Wall, Grand Ave',
-    collection: 'graffiti',
-    datePhotographed: '2025-01-19',
-    generalLocation: 'Phoenix, AZ',
-    medium: 'Wall / spray paint',
-    condition: 'Standing as of photograph date',
-    camera: 'iPhone 15 Pro',
-    width: 4284,
-    height: 5712,
-    editionType: 'open',
+    title: null,
+    collection: '0001',
+    datePhotographed: null,
+    generalLocation: null,
+    medium: null,
+    condition: null,
+    camera: null,
+    width: 3024,
+    height: 4032,
+    editionType: null,
     editionSize: null,
-    image: null
+    image: 'images/0001/IMG_8967.JPG'
   },
   {
     id: '000005',
-    title: 'Yard Fence, Chainlink Study',
-    collection: 'graffiti',
-    datePhotographed: null,
-    generalLocation: 'Mesa, AZ',
-    medium: 'Chainlink fence / found marks',
-    condition: 'Unknown',
-    camera: null,
-    width: 3024,
+    title: null,
+    collection: '0002',
+    datePhotographed: '2026-04-30',
+    generalLocation: null,
+    medium: null,
+    condition: null,
+    camera: 'iPhone 15 Pro',
+    width: 4032,
     height: 3024,
-    editionType: 'limited',
-    editionSize: 10,
-    image: null
+    editionType: null,
+    editionSize: null,
+    image: 'images/0002/IMG_8820.jpeg'
   },
   {
     id: '000006',
-    title: 'Overpass Throw-Up, Night',
-    collection: 'graffiti',
-    datePhotographed: '2025-04-02',
-    generalLocation: 'Phoenix, AZ',
-    medium: 'Overpass wall / spray paint',
-    condition: 'Unknown',
+    title: null,
+    collection: '0002',
+    datePhotographed: '2026-04-30',
+    generalLocation: null,
+    medium: null,
+    condition: null,
     camera: 'iPhone 15 Pro',
-    width: 4284,
-    height: 3213,
-    editionType: 'open',
+    width: 3024,
+    height: 4032,
+    editionType: null,
     editionSize: null,
-    image: null
+    image: 'images/0002/IMG_8821.jpeg'
+  },
+  {
+    id: '000007',
+    title: null,
+    collection: '0002',
+    datePhotographed: null,
+    generalLocation: null,
+    medium: null,
+    condition: null,
+    camera: null,
+    width: 4032,
+    height: 3024,
+    editionType: null,
+    editionSize: null,
+    image: 'images/0002/IMG_8838.JPG'
+  },
+  {
+    id: '000008',
+    title: null,
+    collection: '0003',
+    datePhotographed: null,
+    generalLocation: null,
+    medium: null,
+    condition: null,
+    camera: null,
+    width: 2691,
+    height: 4032,
+    editionType: null,
+    editionSize: null,
+    image: 'images/0003/IMG_0621.JPG'
+  },
+  {
+    id: '000009',
+    title: null,
+    collection: '0003',
+    datePhotographed: null,
+    generalLocation: null,
+    medium: null,
+    condition: null,
+    camera: null,
+    width: 2691,
+    height: 4032,
+    editionType: null,
+    editionSize: null,
+    image: 'images/0003/IMG_1667.JPG'
+  },
+  {
+    id: '000010',
+    title: null,
+    collection: '0003',
+    datePhotographed: null,
+    generalLocation: null,
+    medium: null,
+    condition: null,
+    camera: null,
+    width: 3024,
+    height: 4032,
+    editionType: null,
+    editionSize: null,
+    image: 'images/0003/IMG_8929.JPG'
+  },
+  {
+    id: '000011',
+    title: null,
+    collection: '0004',
+    datePhotographed: '2021-08-12',
+    generalLocation: 'Walsenburg, CO',
+    medium: null,
+    condition: null,
+    camera: 'iPhone 12 Pro',
+    width: 4032,
+    height: 2268,
+    editionType: null,
+    editionSize: null,
+    image: 'images/0004/IMG_0699.JPG'
+  },
+  {
+    id: '000012',
+    title: null,
+    collection: '0004',
+    datePhotographed: '2021-08-12',
+    generalLocation: 'Walsenburg, CO',
+    medium: null,
+    condition: null,
+    camera: 'iPhone 12 Pro',
+    width: 4032,
+    height: 2268,
+    editionType: null,
+    editionSize: null,
+    image: 'images/0004/IMG_0701.JPG'
+  },
+  {
+    id: '000013',
+    title: null,
+    collection: '0004',
+    datePhotographed: null,
+    generalLocation: 'Ozona, TX',
+    medium: null,
+    condition: null,
+    camera: null,
+    width: 2268,
+    height: 4032,
+    editionType: null,
+    editionSize: null,
+    image: 'images/0004/IMG_7630.JPG'
+  },
+  {
+    id: '000014',
+    title: null,
+    collection: '0004',
+    datePhotographed: null,
+    generalLocation: 'Ozona, TX',
+    medium: null,
+    condition: null,
+    camera: null,
+    width: 2268,
+    height: 4032,
+    editionType: null,
+    editionSize: null,
+    image: 'images/0004/IMG_7636.JPG'
+  },
+  {
+    id: '000015',
+    title: null,
+    collection: '0004',
+    datePhotographed: null,
+    generalLocation: 'Ozona, TX',
+    medium: null,
+    condition: null,
+    camera: null,
+    width: 4032,
+    height: 2268,
+    editionType: null,
+    editionSize: null,
+    image: 'images/0004/IMG_7661.JPG'
   }
 ];
 
