@@ -251,8 +251,14 @@
     width: var(--size, 4px);
     height: var(--size, 4px);
     border-radius: 50%;
+    /* The core is near-white on every variant; the colour anyone
+       actually sees is the glow. Holding the hue in one variable is
+       what lets a gust burn the light up without washing it out —
+       brightness() would multiply the core's channels straight into
+       clipping and turn every firefly white, whatever colour it was. */
+    --glow-rgb: 244,217,152;
     background: #f4d998;
-    box-shadow: 0 0 4px 1px rgba(244,217,152,0.9), 0 0 12px 4px rgba(244,217,152,0.35);
+    box-shadow: 0 0 4px 1px rgba(var(--glow-rgb),0.9), 0 0 12px 4px rgba(var(--glow-rgb),0.35);
     opacity: 0;
     animation: firefly-blink var(--blink-dur, 4.5s) ease-in-out infinite;
     animation-delay: var(--blink-delay, 0s);
@@ -274,6 +280,7 @@
      any label. It goes amber on its own the moment photographs
      exist in that archive. */
   .firefly-empty .firefly-dot {
+    --glow-rgb: 214,71,58;
     background: var(--red);
     box-shadow: 0 0 4px 1px rgba(214,71,58,0.9), 0 0 12px 4px rgba(214,71,58,0.4);
   }
@@ -294,6 +301,7 @@
      `.firefly:hover .firefly-dot`, so whichever is written last wins —
      written above, the amber hover glow overwrote the blue one. ── */
   .firefly-link .firefly-dot {
+    --glow-rgb: 116,195,209;
     background: #eefdff;
     box-shadow: 0 0 5px 2px rgba(116,195,209,0.9), 0 0 18px 7px rgba(116,195,209,0.45);
   }
@@ -309,6 +317,78 @@
     text-shadow: 0 0 8px rgba(11,15,21,0.95), 0 0 10px rgba(116,195,209,0.5);
     text-decoration: none;
     border-bottom: 0;
+  }
+
+  /* ── The portfolio light. Violet, so it belongs to neither the amber
+     archives nor the blue one, and it glitches rather than blinking
+     evenly — the field is otherwise all slow drift, so a light that
+     stutters is the one your eye goes to. Below the generic hover
+     rules for the same specificity-tie reason as the block above. ── */
+  .firefly-port .firefly-dot {
+    --glow-rgb: 173,110,255;
+    background: #f6ecff;
+    box-shadow: 0 0 5px 2px rgba(173,110,255,0.9), 0 0 18px 7px rgba(173,110,255,0.45);
+  }
+  .firefly-port:hover .firefly-dot,
+  .firefly-port:focus-visible .firefly-dot {
+    background: #f6ecff;
+    box-shadow: 0 0 7px 3px rgba(214,178,255,1), 0 0 24px 11px rgba(173,110,255,0.6);
+  }
+  .firefly-port { text-decoration: none; }
+  .firefly-port .firefly-label {
+    color: #d9c7ee;
+    text-shadow: 0 0 8px rgba(11,15,21,0.95), 0 0 10px rgba(173,110,255,0.5);
+    text-decoration: none;
+    border-bottom: 0;
+  }
+
+  /* The stutter rides the spinner, not the dot: the dot's opacity
+     belongs to the blink and its filter to the gust stoke, so this is
+     the one layer left that composes with both instead of fighting
+     them. steps() so it snaps between states rather than easing —
+     eased, it reads as a pulse, not a fault. */
+  @keyframes firefly-glitch {
+    0%, 84%, 100% { transform: translate(0, 0);      opacity: 1; }
+    85%           { transform: translate(-2px, 1px); opacity: 0.2; }
+    87%           { transform: translate(3px, -1px); opacity: 1; }
+    89%           { transform: translate(-1px, -2px);opacity: 0.45; }
+    91%           { transform: translate(2px, 1px);  opacity: 1; }
+    93%           { transform: translate(-2px, 0);   opacity: 0.3; }
+    95%           { transform: translate(1px, 1px);  opacity: 1; }
+  }
+  .firefly-port .firefly-spin {
+    animation: firefly-glitch 3.4s steps(1, end) infinite;
+  }
+
+  /* Pressed. There's nowhere to go yet, so the light answers by
+     breaking up harder for a moment — the same fault as its idle
+     stutter, turned all the way up. */
+  @keyframes firefly-jolt {
+    0%   { transform: translate(0, 0);       opacity: 1; }
+    7%   { transform: translate(-5px, 2px);  opacity: 0.12; }
+    15%  { transform: translate(6px, -3px);  opacity: 1; }
+    24%  { transform: translate(-3px, -4px); opacity: 0.3; }
+    33%  { transform: translate(4px, 3px);   opacity: 1; }
+    45%  { transform: translate(-6px, 1px);  opacity: 0.18; }
+    56%  { transform: translate(2px, -2px);  opacity: 1; }
+    68%  { transform: translate(-2px, 3px);  opacity: 0.4; }
+    80%  { transform: translate(3px, -1px);  opacity: 1; }
+    90%  { transform: translate(-1px, 0);    opacity: 0.6; }
+    100% { transform: translate(0, 0);       opacity: 1; }
+  }
+  .firefly-port.is-jolting .firefly-spin {
+    animation: firefly-jolt 640ms steps(1, end) 1;
+  }
+  body.calm .firefly-port.is-jolting .firefly-spin { animation: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .firefly-port.is-jolting .firefly-spin { animation: none; }
+  }
+  /* A light that stutters is exactly what the flashing setting is for,
+     so calm mode holds it steady — it keeps the violet, loses the
+     fault. Same for anyone whose system asks for reduced motion. */
+  body.calm .firefly-port .firefly-spin { animation: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .firefly-port .firefly-spin { animation: none; }
   }
 
   /* Clicking an empty one pops it — a quick bright flare, then out,
@@ -363,6 +443,20 @@
   @keyframes firefly-blink {
     0%, 100% { opacity: 0; }
     45%, 55% { opacity: var(--peak, 0.8); }
+  }
+
+  /* ── Stoked. Air on an ember: the same colour, burning harder.
+     The glow widens on the light's own hue rather than the core
+     being brightened — see --glow-rgb above for why.
+
+     opacity has to be forced. The blink takes every dot to 0 once a
+     cycle, so a flare that only turned the glow up still went dark
+     partway through and never read as held. This pins the light on
+     for as long as the gust is in it, which is the whole point of a
+     hold. ── */
+  .firefly.is-stoked .firefly-dot {
+    opacity: 1 !important;
+    box-shadow: 0 0 9px 3px rgba(var(--glow-rgb),1), 0 0 28px 13px rgba(var(--glow-rgb),0.72);
   }
   @media (prefers-reduced-motion: reduce) {
     .firefly { animation: none; }
@@ -1885,6 +1979,42 @@
          put away. Pressing again hides it. */
       let linkFly = null;
 
+      /* Where the two of them are the same: a place in the field and
+         its own drift and blink, so neither moves like the other. */
+      function seedFly(el) {
+        el.style.setProperty('--x', rand(REGION.xMin + 6, REGION.xMax - 6).toFixed(2) + '%');
+        el.style.setProperty('--y', rand(REGION.yMin + 4, REGION.yMax - 4).toFixed(2) + '%');
+        el.style.setProperty('--size', rand(3.5, 5.5).toFixed(1) + 'px');
+        if (!reduced) {
+          el.style.setProperty('--dx1', rand(15, 45).toFixed(0) + 'px');
+          el.style.setProperty('--dy1', rand(-40, -10).toFixed(0) + 'px');
+          el.style.setProperty('--dx2', rand(-30, -10).toFixed(0) + 'px');
+          el.style.setProperty('--dy2', rand(-60, -25).toFixed(0) + 'px');
+          el.style.setProperty('--dx3', rand(-45, -15).toFixed(0) + 'px');
+          el.style.setProperty('--dy3', rand(5, 25).toFixed(0) + 'px');
+          el.style.setProperty('--dur', rand(16, 30).toFixed(1) + 's');
+          el.style.setProperty('--delay', rand(0, -20).toFixed(1) + 's');
+          el.style.setProperty('--blink-dur', rand(3, 6.5).toFixed(1) + 's');
+          el.style.setProperty('--blink-delay', rand(0, -6).toFixed(1) + 's');
+        }
+        el.style.setProperty('--peak', rand(0.7, 0.95).toFixed(2));
+
+        const spin = document.createElement('span');
+        spin.className = 'firefly-spin';
+        const dot = document.createElement('span');
+        dot.className = 'firefly-dot';
+        spin.appendChild(dot);
+        el.appendChild(spin);
+        return el;
+      }
+
+      function addLabel(el, text) {
+        const label = document.createElement('span');
+        label.className = 'firefly-label';
+        label.textContent = text;
+        el.appendChild(label);
+      }
+
       function makeLinkFly() {
         const a = document.createElement('a');
         a.className = 'firefly firefly-link';
@@ -1892,65 +2022,90 @@
         a.target = '_blank';
         a.rel = 'noopener noreferrer';
         a.setAttribute('aria-label', 'HPNTK (opens in a new tab)');
-        a.style.setProperty('--x', rand(REGION.xMin + 6, REGION.xMax - 6).toFixed(2) + '%');
-        a.style.setProperty('--y', rand(REGION.yMin + 4, REGION.yMax - 4).toFixed(2) + '%');
-        a.style.setProperty('--size', rand(3.5, 5.5).toFixed(1) + 'px');
-        if (!reduced) {
-          a.style.setProperty('--dx1', rand(15, 45).toFixed(0) + 'px');
-          a.style.setProperty('--dy1', rand(-40, -10).toFixed(0) + 'px');
-          a.style.setProperty('--dx2', rand(-30, -10).toFixed(0) + 'px');
-          a.style.setProperty('--dy2', rand(-60, -25).toFixed(0) + 'px');
-          a.style.setProperty('--dx3', rand(-45, -15).toFixed(0) + 'px');
-          a.style.setProperty('--dy3', rand(5, 25).toFixed(0) + 'px');
-          a.style.setProperty('--dur', rand(16, 30).toFixed(1) + 's');
-          a.style.setProperty('--delay', rand(0, -20).toFixed(1) + 's');
-          a.style.setProperty('--blink-dur', rand(3, 6.5).toFixed(1) + 's');
-          a.style.setProperty('--blink-delay', rand(0, -6).toFixed(1) + 's');
-        }
-        a.style.setProperty('--peak', rand(0.7, 0.95).toFixed(2));
-
-        const spin = document.createElement('span');
-        spin.className = 'firefly-spin';
-        const dot = document.createElement('span');
-        dot.className = 'firefly-dot';
-        spin.appendChild(dot);
-        const label = document.createElement('span');
-        label.className = 'firefly-label';
-        label.textContent = 'HPNTK';
-        a.appendChild(spin);
-        a.appendChild(label);
+        seedFly(a);
+        addLabel(a, 'HPNTK');
         return a;
       }
 
-      /* Shift with an arrow blows it in from that edge — the arrow says
-         where the wind comes from, same as every other gust, so it
-         arrives carried on one. The gust itself still fires, so the
-         whole swarm moves as it lands. Once it's here, further gusts
-         just blow it around with the rest. */
+      /* The portfolio light. Put the address here and it becomes a real
+         link; left empty it still drifts and glitches, it just has
+         nowhere to send you yet. */
+      const PORTFOLIO_URL = '';
+      let portFly = null;
+
+      function makePortfolioFly() {
+        const el = document.createElement(PORTFOLIO_URL ? 'a' : 'div');
+        el.className = 'firefly firefly-port';
+        if (PORTFOLIO_URL) {
+          el.href = PORTFOLIO_URL;
+          el.target = '_blank';
+          el.rel = 'noopener noreferrer';
+          el.setAttribute('aria-label', 'Portfolio (opens in a new tab)');
+          seedFly(el);
+          addLabel(el, 'PORTFOLIO');
+          return el;
+        }
+
+        /* Nowhere to go yet. It still answers when pressed — a harder
+           burst of its own fault — so it reads as a thing that works
+           and isn't ready, rather than a light that ignores you. */
+        el.tabIndex = 0;
+        el.setAttribute('role', 'button');
+        el.setAttribute('aria-label', 'Portfolio, coming soon');
+        seedFly(el);
+        addLabel(el, 'COMING SOON');
+
+        const jolt = () => {
+          if (reduced || document.body.classList.contains('calm')) return;
+          el.classList.remove('is-jolting');
+          void el.offsetWidth;                 // rewind, so a second press restarts it
+          el.classList.add('is-jolting');
+        };
+        el.addEventListener('click', jolt);
+        el.addEventListener('keydown', (ev) => {
+          if (ev.key !== 'Enter' && ev.key !== ' ') return;
+          ev.preventDefault();
+          jolt();
+        });
+        el.addEventListener('animationend', (ev) => {
+          if (ev.animationName === 'firefly-jolt') el.classList.remove('is-jolting');
+        });
+        return el;
+      }
+
+      /* Starts well off the windward edge and rides in on the gust. */
+      function blowIn(el, ux, uy) {
+        const entry = Math.max(window.innerWidth, window.innerHeight) + 200;
+        el.style.transitionProperty = 'translate';
+        el.style.transitionTimingFunction = 'cubic-bezier(0.16, 0.82, 0.28, 1)';
+        el.style.transitionDuration = '0ms';
+        el.style.translate = (-ux * entry) + 'px ' + (-uy * entry) + 'px';
+        layerSteer.appendChild(el);
+
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          el.style.transitionDuration = rand(1500, 2300).toFixed(0) + 'ms';
+          el.style.translate = '0px 0px';
+        }));
+      }
+
+      /* Shift with an arrow blows them in from that edge — the arrow
+         says where the wind comes from, same as every other gust, so
+         they arrive carried on one. The gust itself still fires, so the
+         whole swarm moves as they land. Each gets its own place and its
+         own crossing time, so the two don't arrive as a pair. Once
+         they're here, further gusts just blow them about with the
+         rest. */
       document.addEventListener('keydown', (ev) => {
         if (!ev.shiftKey || ev.metaKey || ev.ctrlKey || ev.altKey) return;
         const dir = FROM[ev.key];
         if (!dir) return;
-        // Found. Whether or not one is already out, the nudge above the
+        // Found. Whether or not they're already out, the nudge above the
         // count has done its job and doesn't come back.
         document.dispatchEvent(new CustomEvent('hom:hpntk-found'));
-        if (linkFly) return;              // already here — let it just be blown about
         const [ux, uy] = dir;
 
-        linkFly = makeLinkFly();
-        // start well off the windward edge, then ride in
-        const entry = Math.max(window.innerWidth, window.innerHeight) + 200;
-        linkFly.style.transitionProperty = 'translate';
-        linkFly.style.transitionTimingFunction = 'cubic-bezier(0.16, 0.82, 0.28, 1)';
-        linkFly.style.transitionDuration = '0ms';
-        linkFly.style.translate = (-ux * entry) + 'px ' + (-uy * entry) + 'px';
-        layerSteer.appendChild(linkFly);
-
-        requestAnimationFrame(() => requestAnimationFrame(() => {
-          if (!linkFly) return;
-          linkFly.style.transitionDuration = rand(1500, 2300).toFixed(0) + 'ms';
-          linkFly.style.translate = '0px 0px';
-        }));
+        if (!linkFly) { linkFly = makeLinkFly(); blowIn(linkFly, ux, uy); }
+        if (!portFly) { portFly = makePortfolioFly(); blowIn(portFly, ux, uy); }
       }, true);
 
       /* Arrow keys are wind. The arrow says where the gust comes FROM,
@@ -2025,42 +2180,29 @@
           }
 
           const dotEl = f.querySelector('.firefly-dot');
+          const stokeTransition = (ms) =>
+            'opacity ' + ms + 'ms ease-out, box-shadow ' + ms + 'ms ease-out, ' +
+            'transform 150ms ease, translate ' + blow.toFixed(0) + 'ms cubic-bezier(0.33, 0.6, 0.4, 1) ' + hit.toFixed(0) + 'ms';
+
           if (dotEl) {
-            /* The swing rides the gust's own duration, but the flare
-               gets its own short attack — sharing the drift's timing
-               meant a slow gust was still ramping up when the decay
-               below already had it on the way down, so it never
-               actually read as bright. */
-            dotEl.style.transition =
-              'opacity 150ms ease, transform 150ms ease, box-shadow 150ms ease, ' +
-              'translate ' + blow.toFixed(0) + 'ms cubic-bezier(0.33, 0.6, 0.4, 1) ' + hit.toFixed(0) + 'ms, ' +
-              'filter ' + STOKE_ATTACK + 'ms ease-out ' + hit.toFixed(0) + 'ms';
+            dotEl.style.transition = stokeTransition(STOKE_ATTACK);
             dotEl.style.translate = swing.toFixed(1) + 'px 0px';
           }
 
-          /* Stoked. Air on an ember makes it burn up, so a gust
-             brightens what it catches, by however hard it caught it —
-             which is also what makes the swarm easy to follow while
-             it's moving. Two handles, because one alone is weak: the
-             dot burns brighter right away, and its blink peaks higher
-             for the next few pulses while the wind is still in it.
+          /* Stoked. Air on an ember makes it burn up, so a gust lights
+             what it catches — which is also what makes the swarm easy
+             to follow while it's moving. The class does the work: it
+             widens the glow on the light's own hue and pins opacity on,
+             so the blink can't take it dark halfway through the hold.
 
-             Amber archives and the hidden one, since those are the
+             Amber archives and the hidden ones, since those are the
              only lights this layer holds; the empty reds sit still in
              the other layer and are never caught. Off entirely in calm
              mode — a swarm surging in brightness is the exact thing
              that setting exists to prevent. */
+          let stokeOn = null;
           if (dotEl && stoking) {
-            if (!f.dataset.peak) {
-              const p = parseFloat(getComputedStyle(f).getPropertyValue('--peak'));
-              f.dataset.peak = String(isNaN(p) ? 0.8 : p);
-            }
-            const base = parseFloat(f.dataset.peak) || 0.8;
-            /* Floored well above 1 so even the lightest gust reads as a
-               flare rather than a barely-there shimmer. */
-            const lift = Math.min(2.6, 1.55 + force * rand(0.15, 0.55));
-            dotEl.style.filter = 'brightness(' + lift.toFixed(2) + ')';
-            f.style.setProperty('--peak', Math.min(1, base * (1 + force * 0.45)).toFixed(2));
+            stokeOn = setTimeout(() => f.classList.add('is-stoked'), hit);
           }
 
           setTimeout(() => {
@@ -2076,19 +2218,16 @@
               spinEl.style.rotate = (spin + rand(4, 22) * Math.sign(spin || 1)).toFixed(0) + 'deg';
             }
             if (dotEl) {
+              /* The glow dies back slowly; opacity hands the light
+                 back to the blink, which owns it again the moment the
+                 class comes off. */
               dotEl.style.transition =
-                'opacity 150ms ease, transform 150ms ease, box-shadow 150ms ease, ' +
-                'translate ' + settle.toFixed(0) + 'ms cubic-bezier(0.25, 0.55, 0.3, 1), ' +
-                'filter ' + STOKE_FADE + 'ms ease-out';
+                'opacity ' + STOKE_FADE + 'ms ease-out, box-shadow ' + STOKE_FADE + 'ms ease-out, ' +
+                'transform 150ms ease, translate ' + settle.toFixed(0) + 'ms cubic-bezier(0.25, 0.55, 0.3, 1)';
               dotEl.style.translate = '0px 0px';
-              /* Dies back down slowly, well after the hold. An explicit
-                 brightness(1) rather than clearing it, so the
-                 transition has somewhere to go. */
-              if (stoking) {
-                dotEl.style.filter = 'brightness(1)';
-                if (f.dataset.peak) f.style.setProperty('--peak', f.dataset.peak);
-              }
             }
+            if (stokeOn) clearTimeout(stokeOn);
+            f.classList.remove('is-stoked');
             /* The flare has to be up for at least half a second before
                anything starts taking it away. */
           }, hit + STOKE_ATTACK + STOKE_HOLD + rand(0, 320));
