@@ -1395,9 +1395,11 @@
         if (flashBtn) flashBtn.setAttribute('aria-expanded', String(!!open));
       }
 
-      /* Answering settles the choice and releases the flicker; it does
-         not snatch the plate away. The close mark appears once there
-         is something to close on, so you leave when you're ready. */
+      /* Answering settles the choice, releases the flicker and closes
+         the plate — there's a control top right that brings it back,
+         so nothing is lost by getting out of the way. The short beat
+         before it goes is just long enough to see which button took;
+         it isn't a transition, so nothing depends on it landing. */
       function answer(setCalm) {
         document.body.classList.toggle('calm', !!setCalm);
         try {
@@ -1410,6 +1412,7 @@
           warningAnswered = true;
           document.dispatchEvent(new CustomEvent('hom:warning-answered'));
         }
+        setTimeout(() => setOpen(false), 220);
       }
 
       /* The buttons work whether the plate showed itself or you went
