@@ -117,6 +117,13 @@
   color: var(--color-accent);
 }
 
+/* Shop isn't open yet — shown but inert, everywhere it appears. */
+.nav-disabled {
+  pointer-events: none;
+  opacity: 0.45;
+  cursor: default;
+}
+
 /* Mobile hamburger */
 .nav-hamburger {
   display: none;
@@ -644,7 +651,278 @@
   max-width: 60ch;
 }
 
+/* ── Archive System ── */
+
+/* Collection tiles (Archive page) */
+.collection-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-6);
+}
+
+.collection-tile {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-8);
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  transition: border-color var(--transition);
+}
+
+.collection-tile:hover {
+  border-color: #3e2525;
+}
+
+.collection-tile.is-disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.collection-tile-name {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 500;
+  color: var(--color-text);
+  margin-bottom: var(--space-3);
+}
+
+.collection-tile-tagline {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  line-height: 1.7;
+  margin-bottom: var(--space-6);
+  flex: 1;
+}
+
+.collection-tile-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+/* Archive thumbnail grid (Collection page, Archive page) */
+.archive-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-5);
+}
+
+.archive-card {
+  display: block;
+  text-decoration: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-surface);
+  transition: border-color var(--transition);
+}
+
+.archive-card:hover {
+  border-color: #3e2525;
+}
+
+.archive-thumb {
+  position: relative;
+  background: var(--color-surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.archive-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.archive-thumb-placeholder {
+  background: linear-gradient(150deg, #171212 0%, #130e0e 60%, #1c1510 100%);
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.archive-thumb-placeholder svg { opacity: 0.1; }
+
+.archive-thumb-id {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  background: rgba(19,13,13,0.85);
+  border: 1px solid var(--color-border);
+  padding: 2px var(--space-2);
+  border-radius: 2px;
+}
+
+.archive-card-info {
+  padding: var(--space-4) var(--space-5);
+}
+
+.archive-card-title {
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--color-text);
+  margin-bottom: var(--space-1);
+}
+
+.archive-card-sub {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--color-text-faint);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Archival record table (Item page) */
+.record-table {
+  display: flex;
+  flex-direction: column;
+}
+
+.record-row {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: var(--space-4);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.record-row:last-child {
+  border-bottom: none;
+}
+
+.record-label {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.record-value {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+
+.record-value--unknown {
+  color: var(--color-text-faint);
+  font-style: italic;
+}
+
+/* Photograph frame — preserves aspect ratio, archival-mat feel */
+.photo-frame {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+}
+
+.photo-frame-inner {
+  width: 100%;
+  overflow: hidden;
+  border-radius: 2px;
+}
+
+.photo-frame-inner img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.photo-frame-placeholder {
+  width: 100%;
+  background: linear-gradient(150deg, #171212 0%, #130e0e 60%, #1c1510 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.photo-frame-placeholder svg { opacity: 0.1; }
+
+/* Print size picker (Item page) */
+.print-size-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-2);
+}
+
+.print-size-option {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  cursor: pointer;
+  transition: border-color var(--transition), background var(--transition);
+  text-align: left;
+}
+
+.print-size-option:hover {
+  border-color: var(--color-accent);
+  background: var(--color-surface-2);
+}
+
+.print-size-option.selected {
+  border-color: var(--color-accent);
+  background: rgba(181, 67, 58, 0.06);
+}
+
+.print-size-option-label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text);
+  margin-bottom: var(--space-1);
+}
+
+.print-size-option-price {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--color-accent);
+}
+
+.print-size-note {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--color-text-faint);
+  line-height: 1.6;
+  margin-top: var(--space-3);
+}
+
+/* Archival certificate note */
+.archival-note {
+  background: rgba(181, 67, 58, 0.06);
+  border: 1px solid rgba(181, 67, 58, 0.2);
+  border-radius: var(--radius-sm);
+  padding: var(--space-5);
+}
+
+.archival-note p {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  line-height: 1.7;
+  max-width: 100%;
+}
+
 /* ── Responsive ── */
+@media (max-width: 900px) {
+  .collection-grid { grid-template-columns: repeat(2, 1fr); }
+  .archive-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
 @media (max-width: 768px) {
   .nav-links { display: none; }
   .nav-hamburger { display: flex; }
@@ -656,6 +934,11 @@
   .grid-2 {
     grid-template-columns: 1fr;
   }
+
+  .collection-grid { grid-template-columns: 1fr; }
+  .archive-grid { grid-template-columns: repeat(2, 1fr); }
+  .record-row { grid-template-columns: 120px 1fr; }
+  .print-size-grid { grid-template-columns: 1fr; }
 
   .footer-inner {
     grid-template-columns: 1fr;
