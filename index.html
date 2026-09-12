@@ -626,7 +626,17 @@
     cursor: pointer;
     transition: color 160ms ease, border-color 160ms ease;
   }
-  .warn-btn:hover, .warn-btn:focus-visible {
+  /* Hover is gated on a real pointer: a touch tap leaves :hover stuck
+     on the button it hit, so the old choice kept its highlight next to
+     the new one. Focus styling stays for keyboard use either way. */
+  @media (hover: hover) {
+    .warn-btn:hover {
+      color: var(--red);
+      border-color: var(--line-bright);
+      outline: none;
+    }
+  }
+  .warn-btn:focus-visible {
     color: var(--red);
     border-color: var(--line-bright);
     outline: none;
@@ -1412,6 +1422,11 @@
           localStorage.setItem(WARNED_KEY, '1');
         } catch (e) {}
         markChoice();
+        /* Drop focus off the button that was just pressed, so the only
+           thing marking the choice is aria-pressed. */
+        if (document.activeElement && document.activeElement.closest('.warn')) {
+          document.activeElement.blur();
+        }
         if (closeBtn) closeBtn.hidden = false;
         if (!warningAnswered) {
           warningAnswered = true;
@@ -1792,7 +1807,7 @@
         f.dataset.key = col.key;
         f.tabIndex = 0;
         f.setAttribute('role', 'button');
-        f.setAttribute('aria-label', hasPhotos ? `Open Archive ${archiveNum}` : `Archive ${archiveNum}, empty`);
+        f.setAttribute('aria-label', hasPhotos ? `Open Archive ${archiveNum}` : 'An empty light');
         f.style.setProperty('--x', `${x.toFixed(2)}%`);
         f.style.setProperty('--y', `${y.toFixed(2)}%`);
 
@@ -1826,12 +1841,15 @@
         dot.className = 'firefly-dot';
         spin.appendChild(dot);
 
-        const label = document.createElement('span');
-        label.className = 'firefly-label';
-        label.textContent = `Archive ${archiveNum}`;
-
         f.appendChild(spin);
-        f.appendChild(label);
+        /* Only an archive you can actually open is worth naming. The
+           red ones are empty, so they stay anonymous lights. */
+        if (hasPhotos) {
+          const label = document.createElement('span');
+          label.className = 'firefly-label';
+          label.textContent = `Archive ${archiveNum}`;
+          f.appendChild(label);
+        }
         // The wind catches the amber archives; the empty red ones hold
         // still.
         (hasPhotos ? layerSteer : layerStill).appendChild(f);
