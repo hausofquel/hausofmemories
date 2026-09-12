@@ -297,11 +297,13 @@
     background: #eefdff;
     box-shadow: 0 0 7px 3px rgba(190,243,255,1), 0 0 24px 11px rgba(116,195,209,0.6);
   }
+  /* No rule under it — it reads as a light with a name, not a link. */
+  .firefly-link { text-decoration: none; }
   .firefly-link .firefly-label {
     color: #c5d5d8;
     text-shadow: 0 0 8px rgba(11,15,21,0.95), 0 0 10px rgba(116,195,209,0.5);
-    border-bottom: 1px solid rgba(116,195,209,0.55);
-    padding-bottom: 3px;
+    text-decoration: none;
+    border-bottom: 0;
   }
 
   /* Clicking an empty one pops it — a quick bright flare, then out,
@@ -530,6 +532,31 @@
     box-shadow: 0 0 5px 1px rgba(214,71,58,0.7);
   }
   .tally-nums { font-variant-numeric: tabular-nums; }
+
+  /* ── The reveal. Sits directly above the count and says the one
+     thing it has to say. Nothing earns it but putting out 33
+     fireflies, and it leaves for good the moment the key is used —
+     it's a nudge toward something hidden, not a label. ── */
+  .reveal {
+    position: fixed;
+    left: clamp(18px, 3vw, 40px);
+    bottom: calc(clamp(18px, 3vh, 40px) + 24px);
+    z-index: 5;
+    font-family: 'Courier Prime', monospace;
+    font-size: 9.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #8fb6bd;
+    text-shadow: 0 0 10px rgba(116,195,209,0.45);
+    pointer-events: none;
+    user-select: none;
+    opacity: 0;
+    transition: opacity 900ms ease;
+  }
+  .reveal[hidden] { display: none; }
+  .reveal.reveal-in { opacity: 0.75; }
+  body.viewing .reveal { opacity: 0; }
+  @media (max-width: 720px) { .reveal { display: none; } }
   /* a brief flare on the count when one goes out */
   .tally.tally-bump .tally-dot {
     animation: tally-bump 520ms ease-out;
@@ -627,6 +654,15 @@
   /* It belongs to the landing; an open archive never shows it. */
   body.viewing .warn { display: none; }
 
+  /* On a short window the plate would run off the top edge, since it
+     hangs above a mark that's already near the middle. Tighten it
+     rather than let it clip. */
+  @media (max-height: 780px) {
+    .warn { margin-bottom: 16px; padding: 16px 24px 15px; }
+    .warn-body { line-height: 1.7; margin-bottom: 14px; }
+    .warn-title { margin-bottom: 9px; }
+  }
+
   /* Calm mode — everything that strobes is stilled. The fireflies
      keep their slow drift and their slow blink; those are seconds
      apart, well under the flash threshold. */
@@ -673,15 +709,83 @@
   }
   @media (max-width: 720px) { .help { display: none; } }
 
-  /* ── First-look hint — bottom centre, out of the photograph's way,
-     dim enough to ignore and gone the moment you press anything. The
-     key caps are drawn, not typed: four small plates in the usual
-     inverted-T so it reads as a keyboard at a glance. ── */
+  /* ── Flashing-light control — the help mark's opposite number, top
+     right. The warning shows itself once per browser and then stays
+     out of the way; this is how you get back to it afterwards, or
+     change your mind having already said "continue".
+
+     The dot carries the state, so the control needs no label: it
+     pulses while the flashing is on and holds steady, dim and grey
+     once it's been turned down. ── */
+  .flash {
+    position: fixed;
+    right: clamp(18px, 3vw, 40px);
+    top: clamp(18px, 3vh, 40px);
+    z-index: 6;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background: none;
+    border: 1px solid rgba(147,168,184,0.28);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: border-color 180ms ease, box-shadow 180ms ease;
+  }
+  .flash-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #f4d998;
+    box-shadow: 0 0 4px 1px rgba(244,217,152,0.75);
+    /* Never all the way out — an empty ring reads as broken, not off.
+       And slow: this is a control, not another thing that strobes. */
+    animation: flash-pulse 4.2s ease-in-out infinite;
+    transition: background 180ms ease, box-shadow 180ms ease, opacity 180ms ease;
+  }
+  @keyframes flash-pulse {
+    0%, 100% { opacity: 0.32; }
+    50%      { opacity: 1; }
+  }
+  .flash:hover, .flash:focus-visible {
+    border-color: var(--line-bright);
+    box-shadow: 0 0 10px rgba(214,71,58,0.3);
+    outline: none;
+  }
+  .flash:hover .flash-dot,
+  .flash:focus-visible .flash-dot {
+    background: var(--red);
+    box-shadow: 0 0 5px 2px rgba(214,71,58,0.5);
+  }
+  /* Turned down: the dot stops and goes grey. Same rule covers anyone
+     whose system asks for reduced motion, since that turns calm on. */
+  body.calm .flash-dot {
+    animation: none !important;
+    opacity: 0.5;
+    background: var(--steel-dim);
+    box-shadow: none;
+  }
+  /* While the plate is actually open there's nothing to go back to. */
+  .flash[aria-expanded="true"] { border-color: var(--line-bright); }
+  .flash[aria-expanded="true"] .flash-dot { background: var(--red); box-shadow: 0 0 5px 2px rgba(214,71,58,0.5); }
+  /* It belongs to the landing, like the plate it opens. */
+  body.viewing .flash { display: none; }
+  @media (max-width: 720px) { .flash { display: none; } }
+  @media (prefers-reduced-motion: reduce) { .flash-dot { animation: none; opacity: 0.5; } }
+
+  /* ── First-look hint — parked beside the question mark that brings
+     it back, bottom right, so the thing and the way back to the thing
+     live in the same corner. Out of the photograph's way, dim enough
+     to ignore, and gone the moment you press anything. The key caps
+     are drawn, not typed: four small plates in the usual inverted-T
+     so it reads as a keyboard at a glance. ── */
   .hint {
     position: fixed;
-    left: 50%;
-    bottom: clamp(20px, 4vh, 48px);
-    transform: translateX(-50%);
+    /* clears the 26px mark plus a gap, and sits on its baseline */
+    right: calc(clamp(18px, 3vw, 40px) + 26px + 14px);
+    bottom: clamp(18px, 3vh, 40px);
     z-index: 5;
     display: flex;
     flex-direction: column;
@@ -782,9 +886,9 @@
   }
   .hint-close:hover, .hint-close:focus-visible { color: var(--red); outline: none; }
 
-  /* Archive hint — same plate, but two rows since there are two axes
-     to explain rather than one swarm to stir. */
-  .hint-archive { bottom: auto; top: clamp(18px, 3.5vh, 44px); padding: 16px 30px 14px; }
+  /* Archive hint — same plate in the same corner, but two rows since
+     there are two axes to explain rather than one swarm to stir. */
+  .hint-archive { padding: 16px 30px 14px; }
   .hint-rows { display: flex; flex-direction: column; gap: 9px; }
   .hint-row { display: flex; align-items: center; gap: 6px; }
   .hint-row .key { width: 26px; height: 26px; animation: none; }
@@ -911,6 +1015,9 @@
   <!-- First-look hint. Says the site answers back, shows which keys,
        and gets out of the way the moment you touch anything. -->
   <!-- Popped fireflies, this visit and all visits. -->
+  <!-- Earned at 33 fireflies. Says the key and nothing else. -->
+  <div class="reveal" id="reveal" hidden>shift + arrow key</div>
+
   <div class="tally" id="tally" aria-live="polite">
     <span class="tally-dot" aria-hidden="true"></span>
     <span class="tally-nums"><span id="tallySession">000</span> / <span id="tallyMine">000</span> / <span id="tallyGlobal">000</span></span>
@@ -918,6 +1025,13 @@
 
   <!-- Brings the hints back once they've been dismissed. -->
   <button class="help" id="help" aria-label="Show the controls">?</button>
+
+  <!-- Opposite corner from the help mark: the flashing setting, reachable
+       at any time rather than only on the one visit the warning appears. -->
+  <button class="flash" id="flashToggle" aria-expanded="false"
+          aria-controls="warn" aria-label="Flashing light setting" title="Flashing light">
+    <span class="flash-dot" aria-hidden="true"></span>
+  </button>
 
   <div class="hint" id="hint" role="note">
     <div class="hint-keys" aria-hidden="true">
@@ -1200,6 +1314,42 @@
       if (ev.target && ev.target.tagName === 'IMG') ev.preventDefault();
     });
 
+    /* The reveal above the count. Thirty-three fireflies put out, on
+       this browser, across however many visits it takes — then the key
+       appears, and only the key. Using it retires the line for good;
+       there's nothing to teach twice.
+
+       It says what to press and not what happens, which is the whole
+       point: the thing it opens is still never named anywhere. */
+    (function () {
+      const REVEAL_AT = 33;
+      const FOUND_KEY = 'hom.found';
+      const el = document.getElementById('reveal');
+      if (!el) return;
+
+      let found = false;
+      try { found = localStorage.getItem(FOUND_KEY) === '1'; } catch (e) {}
+
+      function show() {
+        if (found || !el.hidden) return;
+        el.hidden = false;
+        // A frame between display and opacity, or the fade doesn't run.
+        requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('reveal-in')));
+      }
+
+      document.addEventListener('hom:tally', (ev) => {
+        const mine = ev.detail && ev.detail.mine;
+        if (typeof mine === 'number' && mine >= REVEAL_AT) show();
+      });
+
+      document.addEventListener('hom:hpntk-found', () => {
+        found = true;
+        try { localStorage.setItem(FOUND_KEY, '1'); } catch (e) {}
+        el.classList.remove('reveal-in');
+        setTimeout(() => { el.hidden = true; }, 900);
+      });
+    })();
+
     /* Flashing-light warning. Shown once per browser, and nothing
        strobes until it's answered — the brand mark's flicker waits on
        it, so the warning can't be beaten to the screen by the very
@@ -1226,6 +1376,22 @@
       }
 
       const closeBtn = document.getElementById('warnClose');
+      const flashBtn = document.getElementById('flashToggle');
+
+      /* Marks whichever button matches the setting as it currently
+         stands, so reopening the plate later shows where you left it
+         rather than presenting a fresh choice. */
+      function markChoice() {
+        const isCalm = document.body.classList.contains('calm');
+        if (calmBtn) calmBtn.setAttribute('aria-pressed', String(isCalm));
+        if (goBtn) goBtn.setAttribute('aria-pressed', String(!isCalm));
+      }
+
+      function setOpen(open) {
+        if (!warn) return;
+        warn.hidden = !open;
+        if (flashBtn) flashBtn.setAttribute('aria-expanded', String(!!open));
+      }
 
       /* Answering settles the choice and releases the flicker; it does
          not snatch the plate away. The close mark appears once there
@@ -1236,8 +1402,7 @@
           localStorage.setItem(CALM_KEY, setCalm ? '1' : '0');
           localStorage.setItem(WARNED_KEY, '1');
         } catch (e) {}
-        if (calmBtn) calmBtn.setAttribute('aria-pressed', String(!!setCalm));
-        if (goBtn) goBtn.setAttribute('aria-pressed', String(!setCalm));
+        markChoice();
         if (closeBtn) closeBtn.hidden = false;
         if (!warningAnswered) {
           warningAnswered = true;
@@ -1245,14 +1410,45 @@
         }
       }
 
+      /* The buttons work whether the plate showed itself or you went
+         looking for it, so these are wired once and for all. */
+      if (goBtn) goBtn.addEventListener('click', () => answer(false));
+      if (calmBtn) calmBtn.addEventListener('click', () => answer(true));
+      if (closeBtn) closeBtn.addEventListener('click', () => setOpen(false));
+
       if (warned || !warn) {
+        /* Already answered on this browser — the plate stays down, but
+           the choice is settled, so it can be reopened with its close
+           mark already there. */
         warningAnswered = true;
+        markChoice();
+        if (closeBtn) closeBtn.hidden = false;
       } else {
-        warn.hidden = false;
-        if (goBtn) goBtn.addEventListener('click', () => answer(false));
-        if (calmBtn) calmBtn.addEventListener('click', () => answer(true));
-        if (closeBtn) closeBtn.addEventListener('click', () => { warn.hidden = true; });
+        setOpen(true);
       }
+
+      /* Top-right control: opens the plate, and closes it again if it's
+         already up. Never hidden and never expires, so the setting can
+         be changed on any visit rather than only the first. */
+      if (flashBtn && warn) {
+        flashBtn.addEventListener('click', () => {
+          const opening = warn.hidden;
+          if (opening) markChoice();
+          setOpen(opening);
+          flashBtn.blur();
+        });
+      }
+
+      /* Escape closes it, but only once it's been answered — the first
+         showing has to be dealt with, not dismissed. Inside an archive
+         Escape belongs to the archive, so this stands down there even
+         if the plate was left open behind it. */
+      document.addEventListener('keydown', (ev) => {
+        if (ev.key !== 'Escape' || !warn || warn.hidden || !warningAnswered) return;
+        if (document.body.classList.contains('viewing')) return;
+        ev.stopPropagation();
+        setOpen(false);
+      }, true);
 
       window.__calmOn = () => document.body.classList.contains('calm');
       window.__warningPending = () => !warningAnswered;
@@ -1460,10 +1656,20 @@
         })
         .catch(() => {});
 
+      /* The running total is the only thing outside this counter that
+         cares about the number, so it goes out as an event rather than
+         a shared variable. */
+      function announceTally() {
+        document.dispatchEvent(new CustomEvent('hom:tally', {
+          detail: { session: tallySession, mine: tallyLocal }
+        }));
+      }
+
       function countOne() {
         tallySession += 1;
         tallyLocal += 1;
         try { localStorage.setItem(TALLY_KEY, String(tallyLocal)); } catch (e) {}
+        announceTally();
 
         // Move the number straight away so it feels immediate, then let
         // the server's answer correct it — someone else may have put
@@ -1484,6 +1690,7 @@
           .catch(() => {});
       }
       paintTally();
+      announceTally();
 
       // Popped, but not gone for good — it comes back somewhere else
       // in its own cell after a random wait, so the field keeps
@@ -1685,6 +1892,9 @@
         if (!ev.shiftKey || ev.metaKey || ev.ctrlKey || ev.altKey) return;
         const dir = FROM[ev.key];
         if (!dir) return;
+        // Found. Whether or not one is already out, the nudge above the
+        // count has done its job and doesn't come back.
+        document.dispatchEvent(new CustomEvent('hom:hpntk-found'));
         if (linkFly) return;              // already here — let it just be blown about
         const [ux, uy] = dir;
 
