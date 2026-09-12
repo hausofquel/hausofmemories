@@ -256,7 +256,12 @@
     opacity: 0;
     animation: firefly-blink var(--blink-dur, 4.5s) ease-in-out infinite;
     animation-delay: var(--blink-delay, 0s);
-    transition: opacity 150ms ease, transform 150ms ease, box-shadow 150ms ease, translate 600ms ease;
+    /* `filter` is here so a gust can stoke the light. The blink
+       keyframes own `opacity`, and an animation beats an inline style,
+       so brightness is the one handle that composes with the blink
+       instead of fighting it. */
+    transition: opacity 150ms ease, transform 150ms ease, box-shadow 150ms ease,
+                translate 600ms ease, filter 600ms ease;
   }
   .firefly:hover .firefly-dot,
   .firefly:focus-visible .firefly-dot {
@@ -1944,6 +1949,7 @@
         const sweep  = rand(110, 480);    // how fast it crosses the field
         const churn  = rand(6, 26);       // how turbulent it is
         const miss   = rand(0.05, 0.3);   // share of orbs it passes over
+        const stoking = !document.body.classList.contains('calm');
 
         layerSteer.querySelectorAll('.firefly').forEach((f) => {
           if (Math.random() < miss) return;
@@ -1989,6 +1995,28 @@
             dotEl.style.translate = swing.toFixed(1) + 'px 0px';
           }
 
+          /* Stoked. Air on an ember makes it burn up, so a gust
+             brightens what it catches, by however hard it caught it —
+             which is also what makes the swarm easy to follow while
+             it's moving. Two handles, because one alone is weak: the
+             dot burns brighter right away, and its blink peaks higher
+             for the next few pulses while the wind is still in it.
+
+             Amber archives and the hidden one, since those are the
+             only lights this layer holds; the empty reds sit still in
+             the other layer and are never caught. Off entirely in calm
+             mode — a swarm surging in brightness is the exact thing
+             that setting exists to prevent. */
+          if (dotEl && stoking) {
+            if (!f.dataset.peak) {
+              const p = parseFloat(getComputedStyle(f).getPropertyValue('--peak'));
+              f.dataset.peak = String(isNaN(p) ? 0.8 : p);
+            }
+            const base = parseFloat(f.dataset.peak) || 0.8;
+            dotEl.style.filter = 'brightness(' + (1 + force * rand(0.3, 0.85)).toFixed(2) + ')';
+            f.style.setProperty('--peak', Math.min(1, base * (1 + force * 0.45)).toFixed(2));
+          }
+
           setTimeout(() => {
             const settle = rand(2200, 4600);
             f.style.transitionTimingFunction = 'cubic-bezier(0.25, 0.55, 0.3, 1)';
@@ -2005,6 +2033,13 @@
               dotEl.style.transitionDuration = settle.toFixed(0) + 'ms';
               dotEl.style.transitionDelay = '0ms';
               dotEl.style.translate = '0px 0px';
+              /* Dies back down over the same slow settle as the drift.
+                 An explicit brightness(1) rather than clearing it, so
+                 the transition has somewhere to go. */
+              if (stoking) {
+                dotEl.style.filter = 'brightness(1)';
+                if (f.dataset.peak) f.style.setProperty('--peak', f.dataset.peak);
+              }
             }
           }, hit + rand(520, 1000));
         });
