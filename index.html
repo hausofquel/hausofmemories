@@ -94,11 +94,51 @@
      one item only. */
   body.viewing .brandmark-wrap {
     align-self: flex-end;
-    padding-top: clamp(20px, 3vh, 36px);
+    padding-top: clamp(34px, 5.5vh, 68px);
     padding-right: clamp(48px, 7vw, 120px);
     margin-bottom: clamp(14px, 2.4vh, 30px);
   }
+  /* In an archive the mark is the way back, so it takes pointer
+     events. The wrap stays inert on the landing, so fireflies
+     drifting behind the hero are still clickable through it. */
+  body.viewing .brandmark-wrap { pointer-events: auto; }
+  body.viewing .brandmark { cursor: pointer; }
+
+  /* HAUSOFMEMORIES collapses to HOME on hover: the letters that
+     aren't H, O, M and E fold away and the four that are slide
+     together. They're the 1st, 5th, 9th and 13th — the second M and
+     the second E — evenly spaced, which is what makes it land as a
+     word instead of a jumble. max-width does the folding so each
+     letter keeps its own natural width when open; letter-spacing has
+     to go to zero too, or a folded letter leaves its gap behind. */
+  .ltr {
+    display: inline-block;
+    max-width: 2em;
+    overflow: hidden;
+    vertical-align: bottom;
+    transition: max-width 420ms cubic-bezier(0.22, 1, 0.36, 1),
+                opacity 240ms ease,
+                letter-spacing 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  body.viewing .brandmark:hover .ltr:not(.ltr-keep),
+  body.viewing .brandmark:focus-visible .ltr:not(.ltr-keep) {
+    max-width: 0;
+    opacity: 0;
+    letter-spacing: 0;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ltr { transition: none; }
+  }
+
+  /* The collapse shrinks the word, and the mark is right-aligned, so
+     the left edge would jump right — out from under the very cursor
+     that triggered the hover. Hover drops, the word springs back, the
+     cursor is over it again, and it flickers between the two forever.
+     The box keeps its full width (pinned from JS once the viewing
+     size is applied) and the letters fold inside it, so the pointer
+     never loses its target. */
   body.viewing .brandmark {
+    text-align: right;
     font-size: 15px;
     letter-spacing: 0.3em;
     margin-right: -0.3em;
@@ -177,8 +217,7 @@
        animating `transform` underneath. Per-orb timing comes from JS
        so no two get caught by one gust the same way. */
     translate: 0px 0px;
-    rotate: 0deg;
-    will-change: translate, rotate;
+    will-change: translate;
     width: 26px;
     height: 26px;
     margin: -13px 0 0 -13px;
@@ -195,6 +234,19 @@
     animation-play-state: paused;
     outline: none;
   }
+  /* Carries the twirl. The label sits outside it, so the title above
+     a firefly stays level however hard the wind spins the light. */
+  .firefly-spin {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    rotate: 0deg;
+    transition: rotate 420ms cubic-bezier(0.33, 0.6, 0.4, 1);
+    will-change: rotate;
+  }
+
   .firefly-dot {
     width: var(--size, 4px);
     height: var(--size, 4px);
@@ -246,10 +298,12 @@
     .firefly-popping .firefly-dot { animation: none !important; opacity: 0 !important; }
   }
 
+  /* Always above the light, always level. */
   .firefly-label {
     position: absolute;
     left: 50%;
     bottom: 100%;
+    rotate: 0deg;
     transform: translateX(-50%) translateY(-4px);
     white-space: nowrap;
     font-family: 'Courier Prime', monospace;
@@ -323,20 +377,20 @@
     min-width: 0;
     min-height: 0;
   }
+  .pic {
+    -webkit-user-drag: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
   .gallery-stage .pic {
-    max-width: 100%;
-    max-height: 100%;
+    /* A touch inside the frame rather than filling it — the air
+       around the photograph is part of how it reads. */
+    max-width: 88%;
+    max-height: 88%;
     width: auto;
     height: auto;
     object-fit: contain;
     display: block;
-  }
-  /* -webkit-touch-callout blocks the long-press save sheet on iOS;
-     user-drag blocks dragging the file straight out to the desktop. */
-  .gallery-stage .pic, .peek {
-    -webkit-touch-callout: none;
-    -webkit-user-drag: none;
-    user-select: none;
   }
 
   /* One line under the picture: where you are in the archive, and
@@ -391,11 +445,11 @@
     gap: 7px;
   }
   .peek {
-    width: 48px;
-    height: 48px;
+    width: clamp(72px, 8vw, 116px);
+    height: clamp(72px, 8vw, 116px);
     object-fit: cover;
     display: block;
-    opacity: 0.3;
+    opacity: 0.4;
     border: 1px solid rgba(147,168,184,0.18);
     transition: opacity 220ms ease, border-color 220ms ease;
   }
@@ -409,29 +463,6 @@
   .step-prev { left: clamp(6px, 2vw, 34px); }
   .step-next { right: clamp(6px, 2vw, 34px); }
 
-  .gallery-back {
-    position: absolute;
-    top: -30px;
-    left: clamp(48px, 7vw, 120px);
-    background: none;
-    border: 0;
-    padding: 4px 10px 4px 0;
-    font-family: 'Courier Prime', monospace;
-    font-size: 16px;
-    line-height: 1;
-    color: var(--steel-dim);
-    opacity: 0.55;
-    cursor: pointer;
-    transition: color 150ms ease, opacity 150ms ease, text-shadow 150ms ease;
-  }
-  .gallery-back:hover,
-  .gallery-back:focus-visible {
-    opacity: 1;
-    color: var(--red);
-    text-shadow: var(--glow-text-soft);
-    outline: none;
-  }
-
   /* Nothing archived here yet. A quiet line rather than a grey
      plate — an empty room reads better than a blank frame hung on
      the wall. Disappears the moment a photograph exists. */
@@ -442,6 +473,48 @@
     text-transform: uppercase;
     color: var(--steel-dim);
     opacity: 0.5;
+  }
+
+  /* ── Firefly tally — how many you've put out this visit, over how
+     many across every visit. Bottom left, quiet, and it steps aside
+     once an archive is open so the photograph has the screen. ── */
+  .tally {
+    position: fixed;
+    left: clamp(18px, 3vw, 40px);
+    bottom: clamp(18px, 3vh, 40px);
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-family: 'Courier Prime', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.18em;
+    color: var(--steel-dim);
+    pointer-events: none;
+    user-select: none;
+    transition: opacity 320ms ease;
+  }
+  body.viewing .tally { opacity: 0; pointer-events: none; }
+
+  .tally-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--red);
+    box-shadow: 0 0 5px 1px rgba(214,71,58,0.7);
+  }
+  .tally-nums { font-variant-numeric: tabular-nums; }
+  /* a brief flare on the count when one goes out */
+  .tally.tally-bump .tally-dot {
+    animation: tally-bump 520ms ease-out;
+  }
+  @keyframes tally-bump {
+    0%   { transform: scale(1);   box-shadow: 0 0 5px 1px rgba(214,71,58,0.7); }
+    25%  { transform: scale(2.1); box-shadow: 0 0 12px 5px rgba(255,140,120,0.85); }
+    100% { transform: scale(1);   box-shadow: 0 0 5px 1px rgba(214,71,58,0.7); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .tally.tally-bump .tally-dot { animation: none; }
   }
 
   /* ── First-look hint — bottom centre, out of the photograph's way,
@@ -496,9 +569,30 @@
   .key-left  { animation-delay: 0.35s; }
   .key-down  { animation-delay: 0.7s; }
   .key-right { animation-delay: 1.05s; }
+  .key-space { animation-delay: 1.4s; }
   @keyframes key-cue {
     0%, 22%, 100% { border-color: rgba(147,168,184,0.35); color: var(--steel); box-shadow: none; }
     8% { border-color: var(--line-bright); color: var(--red); box-shadow: 0 0 10px rgba(214,71,58,0.35); }
+  }
+
+  .hint-space {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .key-space {
+    width: 92px;
+    height: 20px;
+    font-size: 8.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+  .hint-space-text {
+    font-family: 'Courier Prime', monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--steel);
   }
 
   .hint-line {
@@ -538,6 +632,7 @@
   .hint-rows { display: flex; flex-direction: column; gap: 9px; }
   .hint-row { display: flex; align-items: center; gap: 6px; }
   .hint-row .key { width: 26px; height: 26px; animation: none; }
+  .hint-row .key-space { width: 78px; height: 26px; font-size: 8px; }
   .hint-row-text {
     margin-left: 8px;
     font-family: 'Courier Prime', monospace;
@@ -626,7 +721,6 @@
 
   @media (max-width: 800px) {
     .gallery { padding: 0 34px clamp(18px, 3vh, 34px); }
-    .gallery-back { left: 34px; }
     .gallery-step { padding: 14px 6px; font-size: 17px; }
   }
 </style>
@@ -645,6 +739,12 @@
        collection on the right; picking one swaps the left. -->
   <!-- First-look hint. Says the site answers back, shows which keys,
        and gets out of the way the moment you touch anything. -->
+  <!-- Popped fireflies, this visit and all visits. -->
+  <div class="tally" id="tally" aria-live="polite">
+    <span class="tally-dot" aria-hidden="true"></span>
+    <span class="tally-nums"><span id="tallySession">000</span> / <span id="tallyMine">000</span><span id="tallyGlobalWrap" hidden> / <span id="tallyGlobal">0000</span></span></span>
+  </div>
+
   <div class="hint" id="hint" role="note">
     <div class="hint-keys" aria-hidden="true">
       <span class="key key-up">&uarr;</span>
@@ -653,6 +753,10 @@
       <span class="key key-right">&rarr;</span>
     </div>
     <p class="hint-line">Arrow keys send a breeze through the swarm.<br>A light that burns amber has an archive behind it.</p>
+    <div class="hint-space">
+      <span class="key key-space" aria-hidden="true">space</span>
+      <span class="hint-space-text">opens the first archive</span>
+    </div>
     <p class="hint-note">Best on a computer</p>
     <button class="hint-close" id="hintClose" aria-label="Dismiss">&times;</button>
   </div>
@@ -669,12 +773,15 @@
         <span class="key">↑</span><span class="key">↓</span>
         <span class="hint-row-text">between archives</span>
       </div>
+      <div class="hint-row">
+        <span class="key key-space">space</span>
+        <span class="hint-row-text">closes the archive</span>
+      </div>
     </div>
     <button class="hint-close" id="hintArchiveClose" aria-label="Dismiss">×</button>
   </div>
 
   <div class="gallery gallery-hidden" id="gallery">
-    <button class="gallery-back" id="galleryBack" aria-label="Back to the archive">‹ Archive</button>
     <button class="gallery-step step-prev" id="stepPrev" aria-label="Previous photograph">
       <img class="peek" id="peekPrev" alt="" />
       <span class="step-mark">‹</span>
@@ -688,9 +795,6 @@
   </div>
 
   <script>
-    document.addEventListener('contextmenu', e => e.preventDefault());
-    document.addEventListener('dragstart', e => e.preventDefault());
-
     // Reads directly from archive-data.js — add a collection or an
     // entry there and it shows up here on refresh, nothing to edit
     // in this file.
@@ -711,7 +815,7 @@
     const gallery = document.getElementById('gallery');
     const stage = document.getElementById('galleryStage');
     const meta = document.getElementById('galleryMeta');
-    const galleryBack = document.getElementById('galleryBack');
+    const brandmarkEl = document.getElementById('brandmark');
     const stepPrev = document.getElementById('stepPrev');
     const stepNext = document.getElementById('stepNext');
     const peekPrev = document.getElementById('peekPrev');
@@ -822,7 +926,7 @@
           stepPrev.hidden = true;
           stepNext.hidden = true;
         }
-        galleryBack.focus();
+        if (window.__pinMark) window.__pinMark();
         if (window.__showArchiveHint) window.__showArchiveHint();
       });
     }
@@ -831,6 +935,7 @@
       flickerSwap(() => {
         gallery.classList.add('gallery-hidden');
         document.body.classList.remove('viewing');
+        if (brandmarkEl) brandmarkEl.style.minWidth = '';   // full size again on the field
         shown = [];
         activeIndex = null;
         currentKey = null;
@@ -839,7 +944,65 @@
       });
     }
 
-    galleryBack.addEventListener('click', closeGallery);
+    /* The brand mark is the way back now. Split into letters so the
+       ones spelling HOME can stay while the rest fold away on hover —
+       H(1) O(5) M(9) E(13), the second M and the second E. */
+    (function () {
+      if (!brandmarkEl) return;
+      const word = brandmarkEl.textContent.trim();
+      const keep = new Set([0, 4, 8, 12]);
+      brandmarkEl.innerHTML = word
+        .split('')
+        .map((ch, i) => `<span class="ltr${keep.has(i) ? ' ltr-keep' : ''}">${ch}</span>`)
+        .join('');
+      brandmarkEl.setAttribute('role', 'button');
+      brandmarkEl.setAttribute('tabindex', '0');
+      brandmarkEl.setAttribute('aria-label', 'Back to the archive');
+      /* Pin the mark's width once it's at its archive size, so the
+         collapse can't pull the box out from under the pointer.
+         Measured, never hardcoded — it follows the font. */
+      window.__pinMark = function () {
+        if (!brandmarkEl || brandmarkEl.matches(':hover')) return;
+        brandmarkEl.style.minWidth = '';
+        requestAnimationFrame(() => {
+          if (brandmarkEl.matches(':hover')) return;
+          const w = brandmarkEl.getBoundingClientRect().width;
+          if (w > 0) brandmarkEl.style.minWidth = Math.ceil(w) + 'px';
+        });
+      };
+      window.addEventListener('resize', () => {
+        if (document.body.classList.contains('viewing')) window.__pinMark();
+      });
+
+      brandmarkEl.addEventListener('click', () => {
+        if (!gallery.classList.contains('gallery-hidden')) closeGallery();
+      });
+      brandmarkEl.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter' && !gallery.classList.contains('gallery-hidden')) {
+          ev.preventDefault();
+          closeGallery();
+        }
+      });
+    })();
+
+    /* Space is the way in and the way out: in an archive it collapses
+       back to the field, on the field it opens the first archive. It
+       stands aside whenever something focusable would rather have the
+       key — a firefly, a step arrow, the hint's close. */
+    document.addEventListener('keydown', (ev) => {
+      if (ev.key !== ' ' && ev.code !== 'Space') return;
+      const t = ev.target;
+      if (t && t.closest && (t.closest('.firefly') || t.closest('.gallery-step') ||
+          t.closest('.hint') || t.id === 'brandmark')) return;
+      ev.preventDefault();
+      if (!gallery.classList.contains('gallery-hidden')) {
+        closeGallery();
+      } else {
+        const keys = activeArchives();
+        if (keys.length) openCollection(keys[0]);
+      }
+    });
+
     stepPrev.addEventListener('click', () => step(-1));
     stepNext.addEventListener('click', () => step(1));
 
@@ -852,54 +1015,66 @@
       if (ev.key === 'ArrowDown')  { ev.preventDefault(); stepArchive(1); }
     });
 
-    /* The archive hint: shown the first time an archive opens, then
-       not again for the rest of the visit. Same dismissal as the
-       landing one — click, Esc, or an arrow key, since pressing an
-       arrow is the thing it's describing. */
-    (function () {
-      const h = document.getElementById('hintArchive');
-      if (!h) return;
-      let used = false, gone = false;
-      function dismiss() {
-        if (gone || h.hidden) return;
-        gone = true;
-        h.classList.add('hint-dismissing');
-        setTimeout(() => { h.hidden = true; }, 480);
+    /* No right-click menu, and photographs can't be dragged out of the
+       page. Worth being clear-eyed about what this is: a deterrent
+       against the casual save, not protection. Anyone who wants the
+       file can still reach it through devtools, view-source or the
+       network tab — the only real protections are watermarking and
+       serving something smaller than the print file. */
+    document.addEventListener('contextmenu', (ev) => ev.preventDefault());
+    document.addEventListener('dragstart', (ev) => {
+      if (ev.target && ev.target.tagName === 'IMG') ev.preventDefault();
+    });
+
+    /* Both hint plates behave the same way: they say their piece and
+       get out of the way at the first sign of any interaction — a key,
+       a click anywhere on the page, or their own close mark. One
+       mechanism for both, so they can't drift apart. */
+    const hints = (function () {
+      const plates = [];
+
+      function register(el, opts) {
+        if (!el) return null;
+        const plate = { el, done: false, used: false, once: !!(opts && opts.once) };
+        plates.push(plate);
+        return plate;
       }
-      window.__showArchiveHint = function () {
-        if (used || window.matchMedia('(max-width: 720px)').matches) return;
-        used = true;
-        h.hidden = false;
-      };
-      document.getElementById('hintArchiveClose').addEventListener('click', dismiss);
-      h.addEventListener('click', dismiss);
-      document.addEventListener('keydown', (ev) => {
-        if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Escape'].includes(ev.key)) dismiss();
-      });
+
+      function dismiss(plate) {
+        if (!plate || plate.done || plate.el.hidden) return;
+        plate.done = true;
+        plate.el.classList.add('hint-dismissing');
+        setTimeout(() => { plate.el.hidden = true; }, 480);
+      }
+
+      function dismissAll() { plates.forEach(dismiss); }
+
+      // Any key, any click. Capture phase, so it still counts when the
+      // click lands on a firefly, a step arrow or the mark itself.
+      document.addEventListener('keydown', dismissAll, true);
+      document.addEventListener('click', dismissAll, true);
+
+      return { register, dismiss, dismissAll };
     })();
 
-    /* The hint leaves on the first sign you've read it — a click, Esc,
-       or any arrow key, which both dismisses it and is the thing it
-       was telling you about. Flickers out rather than fading, same as
-       every other transition here. */
+    const landingHint = hints.register(document.getElementById('hint'));
+    const archiveHint = hints.register(document.getElementById('hintArchive'), { once: true });
+
     (function () {
-      const hint = document.getElementById('hint');
-      if (!hint) return;
-      let gone = false;
-      function dismiss() {
-        if (gone) return;
-        gone = true;
-        hint.classList.add('hint-dismissing');
-        setTimeout(() => { hint.hidden = true; }, 480);
-      }
-      document.getElementById('hintClose').addEventListener('click', dismiss);
-      hint.addEventListener('click', dismiss);
-      document.addEventListener('keydown', (ev) => {
-        if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Escape'].includes(ev.key)) dismiss();
-      });
-      // opening an archive counts as having got the idea
-      document.getElementById('fireflies').addEventListener('click', dismiss, true);
+      const a = document.getElementById('hintClose');
+      const b = document.getElementById('hintArchiveClose');
+      if (a) a.addEventListener('click', () => hints.dismiss(landingHint));
+      if (b) b.addEventListener('click', () => hints.dismiss(archiveHint));
+
+      // Shown the first time an archive opens, never again after.
+      window.__showArchiveHint = function () {
+        if (!archiveHint || archiveHint.used || archiveHint.done) return;
+        if (window.matchMedia('(max-width: 720px)').matches) return;
+        archiveHint.used = true;
+        archiveHint.el.hidden = false;
+      };
     })();
+
 
     // Brand mark — sits still, then flickers like a light bulb with
     // a loose connection, in short, irregular bursts.
@@ -945,9 +1120,8 @@
     (function () {
       const fieldOuter = document.getElementById('fireflies');
       if (!fieldOuter || typeof ARCHIVE_COLLECTIONS === 'undefined') return;
-      /* Two layers: the empty red ones stay where they are, the amber
-         ones with archives behind them are the swarm you steer. Same
-         clipping box, so nothing else changes. */
+      /* Two layers: the amber archives are the swarm the gusts move;
+         the empty red ones hold still. */
       const layerStill = document.createElement('div');
       layerStill.className = 'firefly-layer';
       const layerSteer = document.createElement('div');
@@ -959,12 +1133,96 @@
       function rand(min, max) { return Math.random() * (max - min) + min; }
       function clamp(v, min, max) { return Math.min(max, Math.max(min, v)); }
 
+      /* Tally of fireflies put out: this visit, over the count from
+         everyone who has ever visited.
+
+         The shared figure lives in /api/tally — a static page has
+         nowhere to keep a number that everyone sees, so a small
+         serverless function holds it. Until that's provisioned (or if
+         it's ever down, or you're opening the file locally) this falls
+         back to a per-browser total from localStorage, so the counter
+         degrades instead of breaking. Storage reads are wrapped too:
+         they throw outright in private windows. */
+      const TALLY_KEY = 'hom.fireflies.collected';
+      const tallyEl = document.getElementById('tally');
+      const tallySessionEl = document.getElementById('tallySession');
+      const tallyMineEl = document.getElementById('tallyMine');
+      const tallyGlobalEl = document.getElementById('tallyGlobal');
+      const tallyGlobalWrap = document.getElementById('tallyGlobalWrap');
+      let tallySession = 0;
+      let tallyLocal = 0;
+      let tallyAll = 0;
+      let tallyShared = false;          // is the number the world's, or just this browser's?
+
+      try { tallyLocal = parseInt(localStorage.getItem(TALLY_KEY), 10) || 0; } catch (e) { tallyLocal = 0; }
+      tallyAll = tallyLocal;
+
+      /* Three numbers: this visit, everything you've ever put out, and
+         the count across every visitor. The third only appears once
+         the shared store is answering — better to show two honest
+         numbers than a third that's quietly just your own again. */
+      function paintTally() {
+        if (tallySessionEl) tallySessionEl.textContent = String(tallySession).padStart(3, '0');
+        if (tallyMineEl) tallyMineEl.textContent = String(tallyLocal).padStart(3, '0');
+        if (tallyGlobalEl) tallyGlobalEl.textContent = String(tallyAll).padStart(4, '0');
+        if (tallyGlobalWrap) tallyGlobalWrap.hidden = !tallyShared;
+        if (tallyEl) tallyEl.title = tallyShared
+          ? 'This visit / yours all told / every firefly ever put out here'
+          : 'This visit / yours all told';
+      }
+
+      function flare() {
+        if (!tallyEl) return;
+        tallyEl.classList.remove('tally-bump');
+        void tallyEl.offsetWidth;          // restart the flare
+        tallyEl.classList.add('tally-bump');
+      }
+
+      // Read the shared count on arrival. Silent on failure — the
+      // local number is already on screen.
+      fetch('/api/tally', { cache: 'no-store' })
+        .then(r => r.json())
+        .then(d => {
+          if (d && d.configured && typeof d.total === 'number') {
+            tallyShared = true;
+            tallyAll = d.total;
+            paintTally();
+          }
+        })
+        .catch(() => {});
+
+      function countOne() {
+        tallySession += 1;
+        tallyLocal += 1;
+        try { localStorage.setItem(TALLY_KEY, String(tallyLocal)); } catch (e) {}
+
+        // Move the number straight away so it feels immediate, then let
+        // the server's answer correct it — someone else may have put
+        // one out in the meantime.
+        tallyAll += 1;
+        paintTally();
+        flare();
+
+        fetch('/api/tally', { method: 'POST', cache: 'no-store' })
+          .then(r => r.json())
+          .then(d => {
+            if (d && d.configured && typeof d.total === 'number') {
+              tallyShared = true;
+              tallyAll = d.total;
+              paintTally();
+            }
+          })
+          .catch(() => {});
+      }
+      paintTally();
+
       // Popped, but not gone for good — it comes back somewhere else
       // in its own cell after a random wait, so the field keeps
       // shifting rather than emptying out as you click through it.
       function popFirefly(f, col, i) {
         if (f.classList.contains('firefly-popping')) return;
         f.classList.add('firefly-popping');
+        countOne();
         setTimeout(() => {
           f.remove();
           setTimeout(() => spawn(col, i), rand(5000, 18000));
@@ -1001,22 +1259,47 @@
           yMax: clamp(cy + 42, 50, 93)
         };
       })();
+
       const count = ARCHIVE_COLLECTIONS.length;
       const cols = Math.ceil(Math.sqrt(count));
       const rows = Math.ceil(count / cols);
       const cellW = (REGION.xMax - REGION.xMin) / cols;
       const cellH = (REGION.yMax - REGION.yMin) / rows;
 
+      // Archives with photographs, in order. Their place in this list
+      // is what sets their place in the row along the top.
+      const filled = ARCHIVE_COLLECTIONS
+        .filter(c => entries.some(e => e.collection === c.key))
+        .map(c => c.key);
+
       function spawn(col, i) {
-        const cellX = REGION.xMin + (i % cols) * cellW + cellW / 2;
-        const cellY = REGION.yMin + Math.floor(i / cols) * cellH + cellH / 2;
-        const x = clamp(cellX + rand(-cellW * 0.35, cellW * 0.35), REGION.xMin - 3, REGION.xMax + 3);
-        const y = clamp(cellY + rand(-cellH * 0.35, cellH * 0.35), REGION.yMin - 3, REGION.yMax + 3);
         const archiveNum = String(i + 1).padStart(4, '0');
 
         // Empty archive -> red. Driven off the actual entries, so it
         // flips to amber by itself as soon as photographs land in it.
         const hasPhotos = entries.some(e => e.collection === col.key);
+
+        /* Archives hang in the same cluster around the hero as
+           everything else — but their left-to-right order follows the
+           archive number, so 0001 is always leftmost and you can read
+           along them. Their height varies within the cluster so they
+           don't form a rigid line. The empty red ones fall wherever
+           their cell puts them. */
+        let x, y;
+        if (hasPhotos) {
+          const at = Math.max(0, filled.indexOf(col.key));
+          const inset = (REGION.xMax - REGION.xMin) * 0.08;
+          const lo = REGION.xMin + inset, hi = REGION.xMax - inset;
+          const span = filled.length > 1 ? (hi - lo) / (filled.length - 1) : 0;
+          x = filled.length > 1 ? lo + at * span : (lo + hi) / 2;
+          x = clamp(x + rand(-span * 0.12, span * 0.12), REGION.xMin, REGION.xMax);
+          y = rand(REGION.yMin + 2, REGION.yMax - 2);
+        } else {
+          const cellX = REGION.xMin + (i % cols) * cellW + cellW / 2;
+          const cellY = REGION.yMin + Math.floor(i / cols) * cellH + cellH / 2;
+          x = clamp(cellX + rand(-cellW * 0.35, cellW * 0.35), REGION.xMin - 3, REGION.xMax + 3);
+          y = clamp(cellY + rand(-cellH * 0.35, cellH * 0.35), REGION.yMin - 3, REGION.yMax + 3);
+        }
 
         const f = document.createElement('div');
         f.className = hasPhotos ? 'firefly' : 'firefly firefly-empty';
@@ -1028,13 +1311,16 @@
         f.style.setProperty('--y', `${y.toFixed(2)}%`);
 
         if (!reduced) {
+          // Everything drifts freely — the archives are blown about
+          // too, so there's no row to keep tidy.
+          const k = 1;
           f.style.setProperty('--size', `${rand(2.5, 5).toFixed(1)}px`);
-          f.style.setProperty('--dx1', `${rand(15, 45).toFixed(0)}px`);
-          f.style.setProperty('--dy1', `${rand(-40, -10).toFixed(0)}px`);
-          f.style.setProperty('--dx2', `${rand(-30, -10).toFixed(0)}px`);
-          f.style.setProperty('--dy2', `${rand(-60, -25).toFixed(0)}px`);
-          f.style.setProperty('--dx3', `${rand(-45, -15).toFixed(0)}px`);
-          f.style.setProperty('--dy3', `${rand(5, 25).toFixed(0)}px`);
+          f.style.setProperty('--dx1', `${(rand(15, 45) * k).toFixed(0)}px`);
+          f.style.setProperty('--dy1', `${(rand(-40, -10) * k).toFixed(0)}px`);
+          f.style.setProperty('--dx2', `${(rand(-30, -10) * k).toFixed(0)}px`);
+          f.style.setProperty('--dy2', `${(rand(-60, -25) * k).toFixed(0)}px`);
+          f.style.setProperty('--dx3', `${(rand(-45, -15) * k).toFixed(0)}px`);
+          f.style.setProperty('--dy3', `${(rand(5, 25) * k).toFixed(0)}px`);
           f.style.setProperty('--dur', `${rand(16, 30).toFixed(1)}s`);
           f.style.setProperty('--delay', `${rand(0, -20).toFixed(1)}s`);
           f.style.setProperty('--blink-dur', `${rand(3, 6.5).toFixed(1)}s`);
@@ -1044,15 +1330,24 @@
           f.style.setProperty('--peak', (0.3 + Math.random() * 0.25).toFixed(2));
         }
 
+        /* The dot lives inside its own spinner. Rotation goes on that,
+           never on the firefly itself — the label is a sibling of the
+           spinner, so a gust can twirl the light without tipping the
+           title over with it. */
+        const spin = document.createElement('span');
+        spin.className = 'firefly-spin';
         const dot = document.createElement('span');
         dot.className = 'firefly-dot';
+        spin.appendChild(dot);
 
         const label = document.createElement('span');
         label.className = 'firefly-label';
         label.textContent = `Archive ${archiveNum}`;
 
-        f.appendChild(dot);
+        f.appendChild(spin);
         f.appendChild(label);
+        // The wind catches the amber archives; the empty red ones hold
+        // still.
         (hasPhotos ? layerSteer : layerStill).appendChild(f);
 
         // A filled archive opens. An empty one has nothing behind it,
@@ -1069,8 +1364,8 @@
       ARCHIVE_COLLECTIONS.forEach((col, i) => spawn(col, i));
 
       /* Arrow keys are wind. The arrow says where the gust comes FROM,
-         so Left blows the swarm to the right. Only the amber ones —
-         archives with photographs — get caught by it.
+         so Left blows the swarm to the right. It catches the amber
+         archives only — the empty red ones hold still.
 
          A gust, not a pan: the wind sweeps across the field so orbs on
          the windward side are hit first, each takes a different amount
@@ -1114,17 +1409,22 @@
              is never wound back, so it always turns forwards; the
              swing radius returns to zero, so it spirals back in and
              settles instead of stopping dead. */
+          const spinEl = f.querySelector('.firefly-spin');
           const spin = (Number(f.dataset.spin) || 0) + rand(14, 70) * force * (Math.random() < 0.5 ? -1 : 1);
           f.dataset.spin = spin;
           const swing = rand(2, 6.5);
           const blow = rand(420, 780);
 
-          f.style.transitionProperty = 'translate, rotate';
+          f.style.transitionProperty = 'translate';
           f.style.transitionTimingFunction = 'cubic-bezier(0.33, 0.6, 0.4, 1)';
           f.style.transitionDuration = blow.toFixed(0) + 'ms';
           f.style.transitionDelay = hit.toFixed(0) + 'ms';
           f.style.translate = gx.toFixed(1) + 'px ' + gy.toFixed(1) + 'px';
-          f.style.rotate = spin.toFixed(0) + 'deg';
+          if (spinEl) {
+            spinEl.style.transitionDuration = blow.toFixed(0) + 'ms';
+            spinEl.style.transitionDelay = hit.toFixed(0) + 'ms';
+            spinEl.style.rotate = spin.toFixed(0) + 'deg';
+          }
 
           const dotEl = f.querySelector('.firefly-dot');
           if (dotEl) {
@@ -1140,7 +1440,11 @@
             f.style.transitionDelay = '0ms';
             f.style.translate = '0px 0px';
             // keeps turning a little as it comes back, then rests
-            f.style.rotate = (spin + rand(4, 22) * Math.sign(spin || 1)).toFixed(0) + 'deg';
+            if (spinEl) {
+              spinEl.style.transitionDuration = settle.toFixed(0) + 'ms';
+              spinEl.style.transitionDelay = '0ms';
+              spinEl.style.rotate = (spin + rand(4, 22) * Math.sign(spin || 1)).toFixed(0) + 'deg';
+            }
             if (dotEl) {
               dotEl.style.transitionDuration = settle.toFixed(0) + 'ms';
               dotEl.style.transitionDelay = '0ms';
