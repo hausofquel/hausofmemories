@@ -1431,40 +1431,58 @@
       if (ev.target && ev.target.tagName === 'IMG') ev.preventDefault();
     });
 
-    /* The reveal above the count. Thirty-three fireflies put out, on
-       this browser, across however many visits it takes — then the key
-       appears, and only the key. Using it retires the line for good;
-       there's nothing to teach twice.
+    /* The reveal above the count. Every thirty-three fireflies put out,
+       on this browser, across however many visits it takes — then the
+       key appears for a while, and only the key.
+
+       It comes back on each thirty-third rather than once ever. A line
+       that shows up while you're mid-click is easy to miss entirely,
+       and there was no second chance: the old version retired itself
+       permanently the first time shift+arrow was pressed, so anyone who
+       had ever touched those keys — even by accident, before the line
+       had ever appeared — could never be shown it again.
 
        It says what to press and not what happens, which is the whole
        point: the thing it opens is still never named anywhere. */
     (function () {
-      const REVEAL_AT = 33;
-      const FOUND_KEY = 'hom.found';
+      const REVEAL_EVERY = 33;
+      const HOLD_MS = 14000;
       const el = document.getElementById('reveal');
       if (!el) return;
 
-      let found = false;
-      try { found = localStorage.getItem(FOUND_KEY) === '1'; } catch (e) {}
+      let holdTimer = null;      // how long the line stays up
+      let fadeTimer = null;      // the fade-out's own tail
+      let shownFor = 0;          // which count put it up, so one count can't show it twice
 
       function show() {
-        if (found || !el.hidden) return;
+        clearTimeout(holdTimer);
+        clearTimeout(fadeTimer);
+        fadeTimer = null;
         el.hidden = false;
         // A frame between display and opacity, or the fade doesn't run.
         requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('reveal-in')));
+        holdTimer = setTimeout(hide, HOLD_MS);
+      }
+
+      function hide() {
+        clearTimeout(holdTimer);
+        holdTimer = null;
+        if (el.hidden) return;
+        el.classList.remove('reveal-in');
+        fadeTimer = setTimeout(() => { el.hidden = true; fadeTimer = null; }, 900);
       }
 
       document.addEventListener('hom:tally', (ev) => {
         const mine = ev.detail && ev.detail.mine;
-        if (typeof mine === 'number' && mine >= REVEAL_AT) show();
+        if (typeof mine !== 'number' || mine <= 0) return;
+        if (mine % REVEAL_EVERY !== 0 || mine === shownFor) return;
+        shownFor = mine;
+        show();
       });
 
-      document.addEventListener('hom:hpntk-found', () => {
-        found = true;
-        try { localStorage.setItem(FOUND_KEY, '1'); } catch (e) {}
-        el.classList.remove('reveal-in');
-        setTimeout(() => { el.hidden = true; }, 900);
-      });
+      // Pressing the key answers the line, so it gets out of the way —
+      // until the next thirty-three.
+      document.addEventListener('hom:hpntk-found', hide);
     })();
 
     /* Flashing-light warning. Shown once per browser, and nothing
