@@ -2103,8 +2103,15 @@
         const dotTarget = document.querySelector('.tally-dot');
         const a = f.getBoundingClientRect();
         const b = dotTarget ? dotTarget.getBoundingClientRect() : null;
-        const motion = !reduced && !document.body.classList.contains('calm');
-        if (!b || !b.width || !a.width || !motion || document.body.classList.contains('viewing')) {
+        /* Calm mode is the flashing setting, and a light gliding across
+           to the counter doesn't flash — it's steady movement. Gating
+           the journey on it too meant anyone who had ever turned the
+           flashing down got no collection animation whatever: the trip
+           was skipped and the flare that replaces it is itself disabled
+           under calm, so the light simply blinked out of existence.
+           Reduced motion still takes the short way, because that
+           setting is about movement and this is movement. */
+        if (!b || !b.width || !a.width || reduced || document.body.classList.contains('viewing')) {
           return false;
         }
 
