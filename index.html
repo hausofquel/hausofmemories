@@ -462,7 +462,6 @@
      for as long as the gust is in it, which is the whole point of a
      hold. ── */
   .firefly.is-stoked .firefly-dot {
-    opacity: 1 !important;
     box-shadow: 0 0 9px 3px rgba(var(--glow-rgb),1), 0 0 28px 13px rgba(var(--glow-rgb),0.72);
   }
   @media (prefers-reduced-motion: reduce) {
@@ -2139,6 +2138,45 @@
       const STOKE_HOLD = 620;
       const STOKE_FADE = 1400;
 
+      /* Holding a light on, and letting go of it again.
+
+         The blink owns the dot's opacity and takes it to zero once a
+         cycle, so a flare has to override that outright or it goes dark
+         mid-hold. Only an important declaration outranks a running
+         animation, hence setProperty's third argument.
+
+         Letting go is the part worth the trouble. Dropping the override
+         hands opacity straight back to the blink, which is wherever its
+         own cycle has got to — so the light jumps. Instead the blink is
+         paused on the way in, its resting value remembered, and on the
+         way out the light eases back to exactly that value before the
+         animation is unpaused. It resumes on the number it stopped at,
+         so there's nothing to see in the handover. */
+      function beginStoke(f, dotEl) {
+        if (f._stokeRelease) { clearTimeout(f._stokeRelease); f._stokeRelease = null; }
+        if (!f._blink) {
+          const blink = dotEl.getAnimations().find(a => a.animationName === 'firefly-blink');
+          if (blink) {
+            f._rest = getComputedStyle(dotEl).opacity;
+            blink.pause();
+            f._blink = blink;
+          }
+        }
+        dotEl.style.setProperty('opacity', '1', 'important');
+        f.classList.add('is-stoked');
+      }
+
+      function endStoke(f, dotEl) {
+        f.classList.remove('is-stoked');
+        if (!f._blink) { dotEl.style.removeProperty('opacity'); return; }
+        dotEl.style.setProperty('opacity', f._rest, 'important');
+        f._stokeRelease = setTimeout(() => {
+          dotEl.style.removeProperty('opacity');
+          if (f._blink) { f._blink.play(); f._blink = null; }
+          f._stokeRelease = null;
+        }, STOKE_FADE);
+      }
+
       function gust(ux, uy) {
         /* Every gust is its own weather. One press might be a light
            breath, the next a real shove — and wind is patchy, so some
@@ -2198,9 +2236,9 @@
 
           /* Stoked. Air on an ember makes it burn up, so a gust lights
              what it catches — which is also what makes the swarm easy
-             to follow while it's moving. The class does the work: it
-             widens the glow on the light's own hue and pins opacity on,
-             so the blink can't take it dark halfway through the hold.
+             to follow while it's moving. The glow widens on the light's
+             own hue and the blink is held off, so it stays lit for the
+             duration rather than winking out halfway through.
 
              Amber archives and the hidden ones, since those are the
              only lights this layer holds; the empty reds sit still in
@@ -2209,7 +2247,7 @@
              that setting exists to prevent. */
           let stokeOn = null;
           if (dotEl && stoking) {
-            stokeOn = setTimeout(() => f.classList.add('is-stoked'), hit);
+            stokeOn = setTimeout(() => beginStoke(f, dotEl), hit);
           }
 
           setTimeout(() => {
@@ -2225,16 +2263,16 @@
               spinEl.style.rotate = (spin + rand(4, 22) * Math.sign(spin || 1)).toFixed(0) + 'deg';
             }
             if (dotEl) {
-              /* The glow dies back slowly; opacity hands the light
-                 back to the blink, which owns it again the moment the
-                 class comes off. */
+              /* Glow and opacity both ease off over the same slow fade,
+                 so the light comes down as one thing rather than the
+                 halo shrinking while the core is still lit. */
               dotEl.style.transition =
                 'opacity ' + STOKE_FADE + 'ms ease-out, box-shadow ' + STOKE_FADE + 'ms ease-out, ' +
                 'transform 150ms ease, translate ' + settle.toFixed(0) + 'ms cubic-bezier(0.25, 0.55, 0.3, 1)';
               dotEl.style.translate = '0px 0px';
             }
             if (stokeOn) clearTimeout(stokeOn);
-            f.classList.remove('is-stoked');
+            if (dotEl && stoking) endStoke(f, dotEl);
             /* The flare has to be up for at least half a second before
                anything starts taking it away. */
           }, hit + STOKE_ATTACK + STOKE_HOLD + rand(0, 320));
