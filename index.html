@@ -662,6 +662,49 @@
   .reveal.reveal-in { opacity: 0.75; }
   body.viewing .reveal { opacity: 0; }
   @media (max-width: 720px) { .reveal { display: none; } }
+  /* The light itself, carried from where it was put out to the count
+     that keeps them — so the number goes up because something arrived,
+     rather than just incrementing on its own. Fixed, so it travels in
+     screen space and doesn't care which layer it crosses. */
+  .ember {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 5px;
+    height: 5px;
+    margin: -2.5px 0 0 -2.5px;      /* so a translate lands its centre */
+    border-radius: 50%;
+    background: var(--red);
+    box-shadow: 0 0 6px 2px rgba(214,71,58,0.85), 0 0 16px 6px rgba(214,71,58,0.4);
+    pointer-events: none;
+    z-index: 6;
+    will-change: transform, opacity;
+  }
+
+  /* What the ember does on landing: a spire cracks straight up out of
+     the dot and dissipates. The count sits in the corner and is easy
+     to miss, so the arrival throws something upward into open space
+     where it'll be caught out of the corner of an eye. Tapered to
+     nothing at the top so it reads as a strike rather than a bar. */
+  .spire {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 2px;
+    height: 30px;
+    margin-left: -1px;
+    border-radius: 1px;
+    background: linear-gradient(to top,
+      rgba(255,168,150,0.98) 0%,
+      rgba(214,71,58,0.7) 40%,
+      rgba(214,71,58,0) 100%);
+    box-shadow: 0 0 7px 2px rgba(214,71,58,0.45);
+    transform-origin: 50% 100%;     /* grows up out of the dot, not from its own middle */
+    pointer-events: none;
+    z-index: 6;
+    will-change: transform, opacity;
+  }
+
   /* a brief flare on the count when one goes out */
   .tally.tally-bump .tally-dot {
     animation: tally-bump 520ms ease-out;
@@ -1795,6 +1838,36 @@
         tallyEl.classList.remove('tally-bump');
         void tallyEl.offsetWidth;          // restart the flare
         tallyEl.classList.add('tally-bump');
+        strike();
+      }
+
+      /* The spire. Snaps up out of the dot on a sharp ease so it cracks
+         rather than swells, then drifts a little higher as it goes out.
+         Nothing to clean up but itself. */
+      function strike() {
+        const dotTarget = document.querySelector('.tally-dot');
+        if (!dotTarget || reduced || document.body.classList.contains('calm')) return;
+        if (document.body.classList.contains('viewing')) return;
+        const r = dotTarget.getBoundingClientRect();
+        if (!r.width) return;
+
+        const x = r.left + r.width / 2;
+        const base = r.top + r.height / 2 - 30;   // the element's own height, so its foot sits on the dot
+
+        const spire = document.createElement('span');
+        spire.className = 'spire';
+        document.body.appendChild(spire);
+
+        const anim = spire.animate([
+          { transform: 'translate(' + x + 'px,' + base + 'px) scaleY(0.12)', opacity: 0.25 },
+          { transform: 'translate(' + x + 'px,' + base + 'px) scaleY(1)',    opacity: 1, offset: 0.2 },
+          { transform: 'translate(' + x + 'px,' + (base - 6) + 'px) scaleY(0.92)', opacity: 0.75, offset: 0.5 },
+          { transform: 'translate(' + x + 'px,' + (base - 16) + 'px) scaleY(0.7)', opacity: 0 }
+        ], { duration: 720, easing: 'cubic-bezier(0.15, 0.85, 0.3, 1)' });
+
+        const clear = () => spire.remove();
+        anim.onfinish = clear;
+        anim.oncancel = clear;
       }
 
       // Read the shared count on arrival. Silent on failure — the
@@ -1846,13 +1919,65 @@
       paintTally();
       announceTally();
 
+      /* Carries the light that was just put out down to the count, on a
+         slight arc rather than a straight line — a dead-straight path
+         between two fixed points reads as a UI transition, a curved one
+         reads as something drifting. The count only goes up when it
+         lands, so the flare on the dot is the ember arriving.
+
+         Falls back to counting on the spot whenever there's nothing to
+         fly to (the counter is off-screen in an archive) or when motion
+         isn't wanted. */
+      function carryToTally(fromEl, done) {
+        const dotTarget = document.querySelector('.tally-dot');
+        const a = fromEl.getBoundingClientRect();
+        const b = dotTarget ? dotTarget.getBoundingClientRect() : null;
+        const motion = !reduced && !document.body.classList.contains('calm');
+        if (!b || !b.width || !a.width || !motion || document.body.classList.contains('viewing')) {
+          done();
+          return;
+        }
+
+        const x0 = a.left + a.width / 2,  y0 = a.top + a.height / 2;
+        const x1 = b.left + b.width / 2,  y1 = b.top + b.height / 2;
+        const dx = x1 - x0, dy = y1 - y0;
+        const len = Math.hypot(dx, dy) || 1;
+        // bow it out to one side, by a share of how far it has to go
+        const bow = Math.min(130, len * 0.24) * (Math.random() < 0.5 ? -1 : 1);
+        const cx = (x0 + x1) / 2 + (-dy / len) * bow;
+        const cy = (y0 + y1) / 2 + (dx / len) * bow;
+
+        const ember = document.createElement('span');
+        ember.className = 'ember';
+        document.body.appendChild(ember);
+
+        const anim = ember.animate([
+          { transform: 'translate(' + x0 + 'px,' + y0 + 'px) scale(1.15)', opacity: 0.95 },
+          { transform: 'translate(' + cx + 'px,' + cy + 'px) scale(0.85)', opacity: 1, offset: 0.55 },
+          { transform: 'translate(' + x1 + 'px,' + y1 + 'px) scale(0.3)',  opacity: 0.85 }
+        ], {
+          duration: Math.min(1200, 460 + len * 0.6),
+          easing: 'cubic-bezier(0.35, 0, 0.25, 1)'
+        });
+
+        let landed = false;
+        const land = () => {
+          if (landed) return;                 // finish and cancel must not both count
+          landed = true;
+          ember.remove();
+          done();
+        };
+        anim.onfinish = land;
+        anim.oncancel = land;
+      }
+
       // Popped, but not gone for good — it comes back somewhere else
       // in its own cell after a random wait, so the field keeps
       // shifting rather than emptying out as you click through it.
       function popFirefly(f, col, i) {
         if (f.classList.contains('firefly-popping')) return;
         f.classList.add('firefly-popping');
-        countOne();
+        carryToTally(f, countOne);
         setTimeout(() => {
           f.remove();
           setTimeout(() => spawn(col, i), rand(5000, 18000));
