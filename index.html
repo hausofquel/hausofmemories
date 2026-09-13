@@ -648,14 +648,18 @@
   }
   .tally-nums { font-variant-numeric: tabular-nums; }
 
-  /* ── The reveal. Sits directly above the count and says the one
-     thing it has to say. Nothing earns it but putting out 33
-     fireflies, and it leaves for good the moment the key is used —
-     it's a nudge toward something hidden, not a label. ── */
+  /* ── The reveal. Sits under the mark, centred on it — absolutely
+     positioned inside the mark's own wrapper, so it follows wherever
+     the mark goes instead of being placed against the viewport and
+     drifting out of relation to it. Says the one thing it has to say
+     and nothing else; a nudge toward something hidden, not a label. ── */
   .reveal {
-    position: fixed;
-    left: clamp(18px, 3vw, 40px);
-    bottom: calc(clamp(18px, 3vh, 40px) + 24px);
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: clamp(16px, 3.5vh, 40px);
+    white-space: nowrap;
     z-index: 5;
     font-family: 'Courier Prime', monospace;
     font-size: 9.5px;
@@ -1225,6 +1229,11 @@
       </div>
       <button class="warn-close" id="warnClose" aria-label="Close" hidden>&times;</button>
     </div>
+
+    <!-- Every thirty-three fireflies, directly under the mark. The line
+         itself is chosen at show time; this is only what stands here
+         before any of them is picked. -->
+    <div class="reveal" id="reveal" hidden>shift + arrow key</div>
   </div>
 
   <!-- Photographs only. No collection title, no record fields, no
@@ -1234,9 +1243,6 @@
   <!-- First-look hint. Says the site answers back, shows which keys,
        and gets out of the way the moment you touch anything. -->
   <!-- Popped fireflies, this visit and all visits. -->
-  <!-- Earned at 33 fireflies. The line itself is chosen at show time;
-       this is only what stands here before any of them is picked. -->
-  <div class="reveal" id="reveal" hidden>shift + arrow key</div>
 
   <!-- Phones only. Shown once the warning is out of the way. -->
   <div class="desk-note" id="deskNote" role="note" hidden>best on a computer</div>
@@ -1593,29 +1599,28 @@
       const el = document.getElementById('reveal');
       if (!el) return;
 
-      /* A line is not retired the first time it goes up. Fourteen
-         seconds is easy to be looking away for, and burning a hint on a
-         showing nobody saw is the whole reason the old version felt
-         broken — so each is taught REPEATS times, spaced a further
-         AGAIN fireflies apart, before the next one is unlocked. Only
-         ever one line in rotation, so they still come in order. */
-      const REPEATS = 3;
+      /* Nothing is ever retired. Every AGAIN fireflies a line comes up,
+         for as long as anyone keeps collecting — the reward for another
+         thirty-three, not a tutorial that finishes. It takes the next
+         line each time and wraps round at the end, so they still arrive
+         one after another rather than at random, and a line nobody
+         happened to be looking at will come back round. A line joins
+         the rotation once its own price has been met, which is what
+         keeps the dearer ones later. */
       const AGAIN = 33;
 
       let holdTimer = null;      // how long the line stays up
       let fadeTimer = null;      // the fade-out's own tail
-      let taught = 0;            // how far down the list this browser has got
-      let shows = 0;             // times the current line has been up
+      let turn = -1;             // where the rotation has got to
       let lastAt = 0;            // the count it was last shown at
       try {
         const saved = JSON.parse(localStorage.getItem(TAUGHT_KEY) || '{}');
-        taught = saved.taught || 0;
-        shows = saved.shows || 0;
+        turn = typeof saved.turn === 'number' ? saved.turn : -1;
         lastAt = saved.lastAt || 0;
       } catch (e) {}
 
       function remember() {
-        try { localStorage.setItem(TAUGHT_KEY, JSON.stringify({ taught, shows, lastAt })); } catch (e) {}
+        try { localStorage.setItem(TAUGHT_KEY, JSON.stringify({ turn, lastAt })); } catch (e) {}
       }
 
       function show(text) {
@@ -1645,21 +1650,24 @@
 
       document.addEventListener('hom:tally', (ev) => {
         const mine = ev.detail && ev.detail.mine;
-        if (typeof mine !== 'number' || taught >= LINES.length) return;
-        const line = LINES[taught];
-        if (mine < line.at) return;
-        // far enough on from the last showing to be worth saying again
-        if (shows > 0 && mine < lastAt + AGAIN) return;
+        if (typeof mine !== 'number') return;
+
+        // only the lines this many fireflies has actually bought
+        const earned = LINES.filter(l => mine >= l.at);
+        if (!earned.length) return;
+
+        // another thirty-three on from the last one
+        if (mine < lastAt + AGAIN) return;
+
         /* One at a time. A sweep lands its lights in a burst and would
            otherwise blow through a whole rotation at once, replacing
            each line before it had been read. */
         if (!el.hidden) return;
 
-        shows += 1;
+        turn = (turn + 1) % earned.length;
         lastAt = mine;
-        if (shows >= REPEATS) { taught += 1; shows = 0; }
         remember();
-        show(line.text);
+        show(earned[turn].text);
       });
 
       // Pressing the key answers the line, so it gets out of the way —
