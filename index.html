@@ -1175,7 +1175,8 @@
   <!-- First-look hint. Says the site answers back, shows which keys,
        and gets out of the way the moment you touch anything. -->
   <!-- Popped fireflies, this visit and all visits. -->
-  <!-- Earned at 33 fireflies. Says the key and nothing else. -->
+  <!-- Earned at 33 fireflies. The line itself is chosen at show time;
+       this is only what stands here before any of them is picked. -->
   <div class="reveal" id="reveal" hidden>shift + arrow key</div>
 
   <div class="tally" id="tally" aria-live="polite">
@@ -1488,19 +1489,32 @@
        It says what to press and not what happens, which is the whole
        point: the thing it opens is still never named anywhere. */
     (function () {
-      const REVEAL_EVERY = 33;
       const HOLD_MS = 14000;
+      const TAUGHT_KEY = 'hom.taught';
+
+      /* Taught in this order, one apiece, each with its own price in
+         fireflies — the further down the list, the more it costs to be
+         told. Add lines to the end and they join the sequence; nothing
+         else needs touching. Keep them short and keep them to what you
+         press: the hidden lights are still never named anywhere. */
+      const LINES = [
+        { at: 33, text: 'shift + arrow key' },
+        { at: 88, text: 'shift + arrow clears the field' }
+      ];
+
       const el = document.getElementById('reveal');
       if (!el) return;
 
       let holdTimer = null;      // how long the line stays up
       let fadeTimer = null;      // the fade-out's own tail
-      let shownFor = 0;          // which count put it up, so one count can't show it twice
+      let taught = 0;            // how far down the list this browser has got
+      try { taught = parseInt(localStorage.getItem(TAUGHT_KEY), 10) || 0; } catch (e) {}
 
-      function show() {
+      function show(text) {
         clearTimeout(holdTimer);
         clearTimeout(fadeTimer);
         fadeTimer = null;
+        el.textContent = text;
         el.hidden = false;
         // A frame between display and opacity, or the fade doesn't run.
         requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('reveal-in')));
@@ -1517,10 +1531,16 @@
 
       document.addEventListener('hom:tally', (ev) => {
         const mine = ev.detail && ev.detail.mine;
-        if (typeof mine !== 'number' || mine <= 0) return;
-        if (mine % REVEAL_EVERY !== 0 || mine === shownFor) return;
-        shownFor = mine;
-        show();
+        if (typeof mine !== 'number' || taught >= LINES.length) return;
+        const next = LINES[taught];
+        if (mine < next.at) return;
+        /* One at a time. A sweep lands its embers in a burst and would
+           otherwise blow through two prices at once, replacing the
+           first line before it had been read. */
+        if (!el.hidden) return;
+        taught += 1;
+        try { localStorage.setItem(TAUGHT_KEY, String(taught)); } catch (e) {}
+        show(next.text);
       });
 
       // Pressing the key answers the line, so it gets out of the way —
@@ -1868,6 +1888,7 @@
         const clear = () => spire.remove();
         anim.onfinish = clear;
         anim.oncancel = clear;
+        setTimeout(clear, 900);            // as above: a frozen clock must not strand it
       }
 
       // Read the shared count on arrival. Silent on failure — the
@@ -1940,35 +1961,80 @@
 
         const x0 = a.left + a.width / 2,  y0 = a.top + a.height / 2;
         const x1 = b.left + b.width / 2,  y1 = b.top + b.height / 2;
-        const dx = x1 - x0, dy = y1 - y0;
-        const len = Math.hypot(dx, dy) || 1;
-        // bow it out to one side, by a share of how far it has to go
-        const bow = Math.min(130, len * 0.24) * (Math.random() < 0.5 ? -1 : 1);
-        const cx = (x0 + x1) / 2 + (-dy / len) * bow;
-        const cy = (y0 + y1) / 2 + (dx / len) * bow;
+        const len = Math.hypot(x1 - x0, y1 - y0) || 1;
+
+        /* The path is drawn in polar around the counter rather than as
+           a line bent slightly to one side: the ember keeps its
+           distance while it swings round, then winds in tight at the
+           end. Sampled into keyframes here instead of eased by the
+           animation, so the tightening comes from the curve itself —
+           an easing on top of it would only distort the spacing.
+
+           The angle it starts at is wherever it happens to be, so no
+           two arrivals trace the same figure, and the turn goes either
+           way. */
+        const turns = rand(1.15, 2.05) * Math.PI * (Math.random() < 0.5 ? -1 : 1);
+        const theta0 = Math.atan2(y0 - y1, x0 - x1);
+        const STEPS = 22;
+        const frames = [];
+        for (let s = 0; s <= STEPS; s++) {
+          const t = s / STEPS;
+          // radius falls away slowly at first, then drops — the wind-in
+          const r = len * Math.pow(1 - t, 1.45);
+          // and the sweep is quickest through the middle of the turn
+          const swept = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+          const th = theta0 + turns * swept;
+          const scale = 1.15 - 0.85 * t;
+          frames.push({
+            transform: 'translate(' + (x1 + r * Math.cos(th)).toFixed(1) + 'px,' +
+                                      (y1 + r * Math.sin(th)).toFixed(1) + 'px) ' +
+                       'scale(' + scale.toFixed(3) + ')',
+            opacity: t < 0.85 ? 1 : 0.85,
+            offset: t
+          });
+        }
 
         const ember = document.createElement('span');
         ember.className = 'ember';
         document.body.appendChild(ember);
 
-        const anim = ember.animate([
-          { transform: 'translate(' + x0 + 'px,' + y0 + 'px) scale(1.15)', opacity: 0.95 },
-          { transform: 'translate(' + cx + 'px,' + cy + 'px) scale(0.85)', opacity: 1, offset: 0.55 },
-          { transform: 'translate(' + x1 + 'px,' + y1 + 'px) scale(0.3)',  opacity: 0.85 }
-        ], {
-          duration: Math.min(1200, 460 + len * 0.6),
-          easing: 'cubic-bezier(0.35, 0, 0.25, 1)'
-        });
+        const flight = Math.min(1500, 620 + len * 0.75);
+        const anim = ember.animate(frames, { duration: flight, easing: 'linear' });
 
         let landed = false;
         const land = () => {
-          if (landed) return;                 // finish and cancel must not both count
+          if (landed) return;                 // only one of these may count
           landed = true;
           ember.remove();
           done();
         };
         anim.onfinish = land;
         anim.oncancel = land;
+        /* A backgrounded tab freezes the animation clock, so onfinish
+           can simply never arrive — which would leave the count stuck
+           and the embers piling up in the DOM until you looked back at
+           it. The tally can't depend on being watched, so a timer lands
+           it either way and whichever gets there first wins. */
+        setTimeout(land, flight + 150);
+      }
+
+      /* A hard gust takes every red one with it. They go in the order
+         the wind reaches them rather than all at once, so it reads as
+         something sweeping across the field and clearing it — same
+         downwind ordering the gust itself uses. Each still goes through
+         popFirefly, so each is carried down to the count and comes back
+         in its own cell a few seconds later. */
+      function sweepReds(ux, uy) {
+        const reds = [...layerStill.querySelectorAll('.firefly-empty:not(.firefly-popping)')];
+        if (!reds.length) return;
+        const sweep = rand(340, 560);
+        reds.forEach((f) => {
+          const r = f.getBoundingClientRect();
+          const along = ux !== 0
+            ? (ux > 0 ? r.left / window.innerWidth : 1 - r.left / window.innerWidth)
+            : (uy > 0 ? r.top / window.innerHeight : 1 - r.top / window.innerHeight);
+          setTimeout(() => popFirefly(f, f._col, f._i), along * sweep + rand(0, 100));
+        });
       }
 
       // Popped, but not gone for good — it comes back somewhere else
@@ -2107,6 +2173,11 @@
         // The wind catches the amber archives; the empty red ones hold
         // still.
         (hasPhotos ? layerSteer : layerStill).appendChild(f);
+
+        // Which cell this one belongs to, kept on the element so the
+        // wind can put it out without going through its click closure.
+        f._col = col;
+        f._i = i;
 
         // A filled archive opens. An empty one has nothing behind it,
         // so it pops instead and leaves the field.
@@ -2252,6 +2323,10 @@
         // count has done its job and doesn't come back.
         document.dispatchEvent(new CustomEvent('hom:hpntk-found'));
         const [ux, uy] = dir;
+
+        // Hard enough to clear the field of the red ones as it comes
+        // through, not just to carry the two hidden lights in.
+        sweepReds(ux, uy);
 
         if (!linkFly) { linkFly = makeLinkFly(); blowIn(linkFly, ux, uy); }
         if (!portFly) { portFly = makePortfolioFly(); blowIn(portFly, ux, uy); }
