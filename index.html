@@ -662,23 +662,24 @@
   .reveal.reveal-in { opacity: 0.75; }
   body.viewing .reveal { opacity: 0; }
   @media (max-width: 720px) { .reveal { display: none; } }
-  /* The light itself, carried from where it was put out to the count
-     that keeps them — so the number goes up because something arrived,
-     rather than just incrementing on its own. Fixed, so it travels in
-     screen space and doesn't care which layer it crosses. */
-  .ember {
+  /* Being collected. The light that was clicked makes the journey
+     itself rather than winking out and handing off to a stand-in, so
+     what lands on the counter is the one you picked.
+
+     It's lifted out of the field and pinned to the viewport for the
+     trip: the drift has to stop or it would fight the path, and the
+     gust shove is dropped so it starts from where it actually is.
+     transform is left free for the spiral — the drift owned it until
+     the animation was switched off just above. */
+  .firefly.collecting {
     position: fixed;
     left: 0;
     top: 0;
-    width: 5px;
-    height: 5px;
-    margin: -2.5px 0 0 -2.5px;      /* so a translate lands its centre */
-    border-radius: 50%;
-    background: var(--red);
-    box-shadow: 0 0 6px 2px rgba(214,71,58,0.85), 0 0 16px 6px rgba(214,71,58,0.4);
+    animation: none;
+    translate: 0px 0px;
     pointer-events: none;
     z-index: 6;
-    will-change: transform, opacity;
+    will-change: transform;
   }
 
   /* What the ember does on landing: a spire cracks straight up out of
@@ -1497,9 +1498,11 @@
          told. Add lines to the end and they join the sequence; nothing
          else needs touching. Keep them short and keep them to what you
          press: the hidden lights are still never named anywhere. */
+      // Whichever key that actually is on the machine reading it.
+      const MOD = /Mac|iPhone|iPad/i.test(navigator.platform || navigator.userAgent || '') ? 'cmd' : 'ctrl';
       const LINES = [
         { at: 33, text: 'shift + arrow key' },
-        { at: 88, text: 'shift + arrow clears the field' }
+        { at: 88, text: 'shift + ' + MOD + ' + arrow clears the field' }
       ];
 
       const el = document.getElementById('reveal');
@@ -1949,14 +1952,13 @@
          Falls back to counting on the spot whenever there's nothing to
          fly to (the counter is off-screen in an archive) or when motion
          isn't wanted. */
-      function carryToTally(fromEl, done) {
+      function carryToTally(f, done) {
         const dotTarget = document.querySelector('.tally-dot');
-        const a = fromEl.getBoundingClientRect();
+        const a = f.getBoundingClientRect();
         const b = dotTarget ? dotTarget.getBoundingClientRect() : null;
         const motion = !reduced && !document.body.classList.contains('calm');
         if (!b || !b.width || !a.width || !motion || document.body.classList.contains('viewing')) {
-          done();
-          return;
+          return false;
         }
 
         const x0 = a.left + a.width / 2,  y0 = a.top + a.height / 2;
@@ -1973,49 +1975,73 @@
            The angle it starts at is wherever it happens to be, so no
            two arrivals trace the same figure, and the turn goes either
            way. */
-        const turns = rand(1.15, 2.05) * Math.PI * (Math.random() < 0.5 ? -1 : 1);
+        const magnitude = rand(1.15, 2.05) * Math.PI;
         const theta0 = Math.atan2(y0 - y1, x0 - x1);
         const STEPS = 22;
-        const frames = [];
-        for (let s = 0; s <= STEPS; s++) {
-          const t = s / STEPS;
-          // radius falls away slowly at first, then drops — the wind-in
-          const r = len * Math.pow(1 - t, 1.45);
-          // and the sweep is quickest through the middle of the turn
-          const swept = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-          const th = theta0 + turns * swept;
-          const scale = 1.15 - 0.85 * t;
-          frames.push({
-            transform: 'translate(' + (x1 + r * Math.cos(th)).toFixed(1) + 'px,' +
-                                      (y1 + r * Math.sin(th)).toFixed(1) + 'px) ' +
-                       'scale(' + scale.toFixed(3) + ')',
-            opacity: t < 0.85 ? 1 : 0.85,
-            offset: t
-          });
+
+        function arc(turns) {
+          const pts = [];
+          for (let s = 0; s <= STEPS; s++) {
+            const t = s / STEPS;
+            // radius falls away slowly at first, then drops — the wind-in
+            const r = len * Math.pow(1 - t, 1.45);
+            // and the sweep is quickest through the middle of the turn
+            const swept = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+            const th = theta0 + turns * swept;
+            pts.push([x1 + r * Math.cos(th), y1 + r * Math.sin(th), t]);
+          }
+          return pts;
         }
 
-        const ember = document.createElement('span');
-        ember.className = 'ember';
-        document.body.appendChild(ember);
+        /* The counter sits in a corner, so a spiral around it will
+           happily swing a light out through the nearest edge and back —
+           collected lights would disappear off-screen mid-journey. Both
+           directions of turn are laid out and the one that stays in
+           view wins; which way that is depends on where the light
+           started, so it can't just be picked once. */
+        const onScreen = (pts) => pts.reduce((n, p) =>
+          n + (p[0] >= 0 && p[0] <= window.innerWidth && p[1] >= 0 && p[1] <= window.innerHeight ? 1 : 0), 0);
+        let pts = arc(magnitude);
+        const other = arc(-magnitude);
+        if (onScreen(other) > onScreen(pts)) pts = other;
+
+        // and a hard edge to fall back on, for a start point so close to
+        // the corner that neither turn can stay clear of it
+        const M = 8;
+        const frames = pts.map(([x, y, t]) => ({
+          transform: 'translate(' + clamp(x, M, window.innerWidth - M).toFixed(1) + 'px,' +
+                                    clamp(y, M, window.innerHeight - M).toFixed(1) + 'px) ' +
+                     'scale(' + (1.15 - 0.85 * t).toFixed(3) + ')',
+          opacity: t < 0.85 ? 1 : 0.85,
+          offset: t
+        }));
+
+        /* Out of the field and onto the body: the layer it lives in is
+           clipped, and a light on its way to the corner has to cross
+           that edge. Nothing is lost by moving it — it's removed on
+           arrival either way, and its replacement is built fresh. */
+        f.classList.add('collecting');
+        document.body.appendChild(f);
 
         const flight = Math.min(1500, 620 + len * 0.75);
-        const anim = ember.animate(frames, { duration: flight, easing: 'linear' });
+        const anim = f.animate(frames, { duration: flight, easing: 'linear' });
 
         let landed = false;
         const land = () => {
           if (landed) return;                 // only one of these may count
           landed = true;
-          ember.remove();
+          f.remove();
           done();
         };
         anim.onfinish = land;
         anim.oncancel = land;
         /* A backgrounded tab freezes the animation clock, so onfinish
            can simply never arrive — which would leave the count stuck
-           and the embers piling up in the DOM until you looked back at
-           it. The tally can't depend on being watched, so a timer lands
-           it either way and whichever gets there first wins. */
+           and lights piling up in the DOM until you looked back at it.
+           The tally can't depend on being watched, so a timer lands it
+           either way and whichever gets there first wins. */
         setTimeout(land, flight + 150);
+        return true;
       }
 
       /* A hard gust takes every red one with it. They go in the order
@@ -2037,17 +2063,22 @@
         });
       }
 
-      // Popped, but not gone for good — it comes back somewhere else
-      // in its own cell after a random wait, so the field keeps
-      // shifting rather than emptying out as you click through it.
+      // Collected, but not gone for good — one comes back in the same
+      // cell after a random wait, so the field keeps shifting rather
+      // than emptying out as you clear it.
       function popFirefly(f, col, i) {
-        if (f.classList.contains('firefly-popping')) return;
+        if (f.classList.contains('firefly-popping') || f.classList.contains('collecting')) return;
+
+        const replace = () => setTimeout(() => spawn(col, i), rand(5000, 18000));
+
+        // The light flies to the counter itself and is counted on
+        // arrival. Only when there's no journey to make does it go the
+        // old way: a flare where it stands, counted on the spot.
+        if (carryToTally(f, () => { countOne(); replace(); })) return;
+
         f.classList.add('firefly-popping');
-        carryToTally(f, countOne);
-        setTimeout(() => {
-          f.remove();
-          setTimeout(() => spawn(col, i), rand(5000, 18000));
-        }, 420);
+        countOne();
+        setTimeout(() => { f.remove(); replace(); }, 420);
       }
 
       // Clustered around the brand mark rather than spread
@@ -2316,18 +2347,27 @@
          they're here, further gusts just blow them about with the
          rest. */
       document.addEventListener('keydown', (ev) => {
-        if (!ev.shiftKey || ev.metaKey || ev.ctrlKey || ev.altKey) return;
+        /* Shift and an arrow. Command or control being down as well is
+           fine — people reach for shift-cmd-arrow as one gesture, and
+           refusing it just made the keys look broken. */
+        if (!ev.shiftKey) return;
         const dir = FROM[ev.key];
         if (!dir) return;
+        ev.preventDefault();
         // Found. Whether or not they're already out, the nudge above the
         // count has done its job and doesn't come back.
-        document.dispatchEvent(new CustomEvent('hom:hpntk-found'));
         const [ux, uy] = dir;
 
-        // Hard enough to clear the field of the red ones as it comes
-        // through, not just to carry the two hidden lights in.
-        sweepReds(ux, uy);
+        /* Two different winds off the same keys. Holding command as
+           well makes it the hard one: it comes through and takes every
+           red light with it. Without command it's the quiet one that
+           only carries the hidden lights in. */
+        if (ev.metaKey || ev.ctrlKey) {
+          sweepReds(ux, uy);
+          return;
+        }
 
+        document.dispatchEvent(new CustomEvent('hom:hpntk-found'));
         if (!linkFly) { linkFly = makeLinkFly(); blowIn(linkFly, ux, uy); }
         if (!portFly) { portFly = makePortfolioFly(); blowIn(portFly, ux, uy); }
       }, true);
