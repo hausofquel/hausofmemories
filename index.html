@@ -2012,12 +2012,31 @@
       /* The spire. Snaps up out of the dot on a sharp ease so it cracks
          rather than swells, then drifts a little higher as it goes out.
          Nothing to clean up but itself. */
+      let lastStrike = 0;
+
       function strike() {
         const dotTarget = document.querySelector('.tally-dot');
-        if (!dotTarget || reduced || document.body.classList.contains('calm')) return;
+        if (!dotTarget || reduced) return;
         if (document.body.classList.contains('viewing')) return;
         const r = dotTarget.getBoundingClientRect();
         if (!r.width) return;
+
+        /* Calm still gets a spire — without one there's nothing at all
+           to mark an arrival — but a softer, slower one that swells
+           rather than cracks. What the flashing setting is protecting
+           against isn't a single rise and fade, it's a run of them: a
+           sweep lands twenty-six at once, and twenty-six hard flares in
+           two seconds is precisely the strobe the warning is about. So
+           they're spaced, generously when the flashing is turned down. */
+        const calm = document.body.classList.contains('calm');
+        const now = performance.now();
+        /* 420ms is a shade over two a second, which stays the right
+           side of the three-a-second line that matters for
+           photosensitivity. Anyone who left the flashing on has already
+           been asked and answered, so that path is only spaced enough
+           to stop them piling into one smear. */
+        if (now - lastStrike < (calm ? 420 : 150)) return;
+        lastStrike = now;
 
         const x = r.left + r.width / 2;
         const base = r.top + r.height / 2 - 30;   // the element's own height, so its foot sits on the dot
@@ -2026,19 +2045,25 @@
         spire.className = 'spire';
         document.body.appendChild(spire);
 
+        const peak = calm ? 0.5 : 1;
+        const life = calm ? 1150 : 720;
         const anim = spire.animate([
-          { transform: 'translate(' + x + 'px,' + base + 'px) scaleY(0.12)', opacity: 0.25 },
-          { transform: 'translate(' + x + 'px,' + base + 'px) scaleY(1)',    opacity: 1, offset: 0.2 },
-          { transform: 'translate(' + x + 'px,' + (base - 6) + 'px) scaleY(0.92)', opacity: 0.75, offset: 0.5 },
+          { transform: 'translate(' + x + 'px,' + base + 'px) scaleY(0.12)', opacity: calm ? 0 : 0.25 },
+          { transform: 'translate(' + x + 'px,' + base + 'px) scaleY(1)',    opacity: peak, offset: calm ? 0.34 : 0.2 },
+          { transform: 'translate(' + x + 'px,' + (base - 6) + 'px) scaleY(0.92)', opacity: peak * 0.75, offset: 0.6 },
           { transform: 'translate(' + x + 'px,' + (base - 16) + 'px) scaleY(0.7)', opacity: 0 }
-        ], { duration: 720, easing: 'cubic-bezier(0.15, 0.85, 0.3, 1)', fill: 'forwards' });
+        ], {
+          duration: life,
+          easing: calm ? 'ease-in-out' : 'cubic-bezier(0.15, 0.85, 0.3, 1)',
+          fill: 'forwards'
+        });
 
         // as with the ember: hold the last frame, or it flicks back to
         // full opacity for the moment before it's taken away
         const clear = () => spire.remove();
         anim.onfinish = clear;
         anim.oncancel = clear;
-        setTimeout(clear, 900);            // as above: a frozen clock must not strand it
+        setTimeout(clear, life + 180);     // as above: a frozen clock must not strand it
       }
 
       // Read the shared count on arrival. Silent on failure — the
@@ -2116,7 +2141,10 @@
         }
 
         const x0 = a.left + a.width / 2,  y0 = a.top + a.height / 2;
-        const x1 = b.left + b.width / 2,  y1 = b.top + b.height / 2;
+        /* Just off the dot's right shoulder rather than dead on it, so
+           the arrival sits beside the light it's being added to instead
+           of landing on top of it and hiding the thing that flares. */
+        const x1 = b.right + 7,  y1 = b.top + b.height / 2;
         const len = Math.hypot(x1 - x0, y1 - y0) || 1;
 
         /* The path is drawn in polar around the counter rather than as
