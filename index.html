@@ -234,6 +234,16 @@
     animation-play-state: paused;
     outline: none;
   }
+  /* A thumb needs more to aim at than a pointer does. The box grows,
+     the light inside it doesn't — it stays centred by the same flex,
+     so this is only a wider place to land. */
+  @media (pointer: coarse) {
+    .firefly {
+      width: 46px;
+      height: 46px;
+      margin: -23px 0 0 -23px;
+    }
+  }
   /* Carries the twirl. The label sits outside it, so the title above
      a firefly stays level however hard the wind spins the light. */
   .firefly-spin {
@@ -662,6 +672,34 @@
   .reveal.reveal-in { opacity: 0.75; }
   body.viewing .reveal { opacity: 0; }
   @media (max-width: 720px) { .reveal { display: none; } }
+
+  /* ── Only worth saying on a phone. The archive is built around keys
+     that aren't there — the wind, the sweep, the hidden lights — so a
+     phone gets the pictures and the swarm but not the rest of it. Said
+     once, quietly, when the warning clears, and gone on its own or at
+     the first touch. ── */
+  .desk-note {
+    position: fixed;
+    left: 50%;
+    bottom: clamp(70px, 13vh, 130px);
+    transform: translateX(-50%);
+    z-index: 7;
+    max-width: 82vw;
+    text-align: center;
+    font-family: 'Courier Prime', monospace;
+    font-size: 10px;
+    line-height: 1.8;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--steel-dim);
+    pointer-events: none;      /* the tap that dismisses it is caught on the document */
+    opacity: 0;
+    transition: opacity 900ms ease;
+  }
+  .desk-note.note-in { opacity: 0.85; }
+  .desk-note[hidden] { display: none; }
+  /* Nothing to say on a machine that has the keys. */
+  @media (min-width: 721px) { .desk-note { display: none; } }
   /* Being collected. The light that was clicked makes the journey
      itself rather than winking out and handing off to a stand-in, so
      what lands on the counter is the one you picked.
@@ -933,7 +971,14 @@
   .flash[aria-expanded="true"] .flash-dot { background: var(--red); box-shadow: 0 0 5px 2px rgba(214,71,58,0.5); }
   /* It belongs to the landing, like the plate it opens. */
   body.viewing .flash { display: none; }
-  @media (max-width: 720px) { .flash { display: none; } }
+  /* Stays on a phone, unlike the help mark and the key hints — those
+     teach keys a phone hasn't got, but this is the way back to the
+     flashing setting. Hiding it meant tapping "continue" once settled
+     the question for good with no way to change your mind. Bigger
+     there, since it's a thumb rather than a pointer. */
+  @media (max-width: 720px) {
+    .flash { width: 34px; height: 34px; }
+  }
   @media (prefers-reduced-motion: reduce) { .flash-dot { animation: none; opacity: 0.5; } }
 
   /* ── First-look hint — parked beside the question mark that brings
@@ -1144,6 +1189,19 @@
     .gallery { padding: 0 34px clamp(18px, 3vh, 34px); }
     .gallery-step { padding: 14px 6px; font-size: 17px; }
   }
+
+  /* On a phone the photograph is the whole point, and the two step
+     arrows were sitting on top of it — a 48px thumbnail either side
+     plus their padding took a third of the width off a 375px screen.
+     The peeks go, the arrows pull into the margins, and the picture
+     gets the room. Stepping is mostly a swipe here anyway. */
+  @media (max-width: 720px) {
+    .gallery { padding: 0 4px clamp(14px, 2.5vh, 26px); }
+    .peek { display: none; }
+    .gallery-step { padding: 22px 4px; font-size: 15px; opacity: 0.28; }
+    .step-prev { left: 0; }
+    .step-next { right: 0; }
+  }
 </style>
 </head>
 <body>
@@ -1179,6 +1237,9 @@
   <!-- Earned at 33 fireflies. The line itself is chosen at show time;
        this is only what stands here before any of them is picked. -->
   <div class="reveal" id="reveal" hidden>shift + arrow key</div>
+
+  <!-- Phones only. Shown once the warning is out of the way. -->
+  <div class="desk-note" id="deskNote" role="note" hidden>best on a computer</div>
 
   <div class="tally" id="tally" aria-live="polite">
     <span class="tally-dot" aria-hidden="true"></span>
@@ -1456,6 +1517,30 @@
     stepPrev.addEventListener('click', () => step(-1));
     stepNext.addEventListener('click', () => step(1));
 
+    /* Swipe across the photograph to step, which is what a thumb
+       reaches for before it goes hunting for an arrow. Horizontal only
+       and past a real distance, so a scroll or a stray touch doesn't
+       move the archive on you. */
+    (function () {
+      const SWIPE = 45;
+      let x0 = null, y0 = null;
+
+      gallery.addEventListener('touchstart', (ev) => {
+        if (ev.touches.length !== 1) { x0 = null; return; }
+        x0 = ev.touches[0].clientX;
+        y0 = ev.touches[0].clientY;
+      }, { passive: true });
+
+      gallery.addEventListener('touchend', (ev) => {
+        if (x0 === null || !ev.changedTouches.length) return;
+        const dx = ev.changedTouches[0].clientX - x0;
+        const dy = ev.changedTouches[0].clientY - y0;
+        x0 = null;
+        if (Math.abs(dx) < SWIPE || Math.abs(dx) < Math.abs(dy) * 1.4) return;
+        step(dx < 0 ? 1 : -1);       // drag left to bring the next one in
+      }, { passive: true });
+    })();
+
     document.addEventListener('keydown', (ev) => {
       if (gallery.classList.contains('gallery-hidden')) return;
       if (ev.key === 'Escape') { closeGallery(); return; }
@@ -1539,8 +1624,14 @@
         fadeTimer = null;
         el.textContent = text;
         el.hidden = false;
-        // A frame between display and opacity, or the fade doesn't run.
-        requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('reveal-in')));
+        /* The browser has to see the element displayed before the
+           opacity change can transition, and reading offsetWidth is
+           what forces that. This used to wait a frame instead — but a
+           backgrounded tab runs no frames, so the class never landed,
+           the line sat at zero opacity for its whole fourteen seconds
+           and then hid itself. It never appeared at all. */
+        void el.offsetWidth;
+        el.classList.add('reveal-in');
         holdTimer = setTimeout(hide, HOLD_MS);
       }
 
@@ -1574,6 +1665,32 @@
       // Pressing the key answers the line, so it gets out of the way —
       // until the next thirty-three.
       document.addEventListener('hom:hpntk-found', hide);
+    })();
+
+    /* The phone note. Waits for the warning to be out of the way —
+       two plates at once is one too many — then says its piece and
+       leaves, either on its own or at the first touch anywhere. */
+    (function () {
+      const note = document.getElementById('deskNote');
+      if (!note || !window.matchMedia('(max-width: 720px)').matches) return;
+
+      let stay = null, tail = null;
+      function go() {
+        clearTimeout(stay);
+        clearTimeout(tail);
+        if (note.hidden) return;
+        note.classList.remove('note-in');
+        tail = setTimeout(() => { note.hidden = true; }, 950);
+      }
+
+      document.addEventListener('hom:warning-answered', () => {
+        note.hidden = false;
+        void note.offsetWidth;          // as with the reveal: no frame to wait for
+        note.classList.add('note-in');
+        stay = setTimeout(go, 6500);
+        // any touch at all takes it early
+        document.addEventListener('pointerdown', go, { once: true, capture: true });
+      }, { once: true });
     })();
 
     /* Flashing-light warning. Shown once per browser, and nothing
@@ -1657,6 +1774,9 @@
         warningAnswered = true;
         markChoice();
         if (closeBtn) closeBtn.hidden = false;
+        /* Nothing to close, so nothing would announce it. Said on
+           arrival instead, once the page has settled. */
+        setTimeout(() => document.dispatchEvent(new CustomEvent('hom:warning-answered')), 900);
       } else {
         setOpen(true);
       }
