@@ -2031,8 +2031,10 @@
           { transform: 'translate(' + x + 'px,' + base + 'px) scaleY(1)',    opacity: 1, offset: 0.2 },
           { transform: 'translate(' + x + 'px,' + (base - 6) + 'px) scaleY(0.92)', opacity: 0.75, offset: 0.5 },
           { transform: 'translate(' + x + 'px,' + (base - 16) + 'px) scaleY(0.7)', opacity: 0 }
-        ], { duration: 720, easing: 'cubic-bezier(0.15, 0.85, 0.3, 1)' });
+        ], { duration: 720, easing: 'cubic-bezier(0.15, 0.85, 0.3, 1)', fill: 'forwards' });
 
+        // as with the ember: hold the last frame, or it flicks back to
+        // full opacity for the moment before it's taken away
         const clear = () => spire.remove();
         anim.onfinish = clear;
         anim.oncancel = clear;
@@ -2186,7 +2188,14 @@
         document.body.appendChild(f);
 
         const flight = Math.min(1500, 620 + len * 0.75);
-        const anim = f.animate(frames, { duration: flight, easing: 'linear' });
+        /* fill matters more than it looks. Without it the transform is
+           dropped the instant the animation ends, and since the element
+           is pinned at the viewport's origin for the trip, the light
+           snapped from the counter to the top-left corner for the
+           moment before it was removed — a whole sweep's worth of them
+           flashing up there at once. Holding the last frame keeps it
+           where it landed until it goes. */
+        const anim = f.animate(frames, { duration: flight, easing: 'linear', fill: 'forwards' });
 
         let landed = false;
         const land = () => {
@@ -2428,13 +2437,12 @@
         el.appendChild(label);
       }
 
+      // Leaves in the same tab rather than spawning another one.
       function makeLinkFly() {
         const a = document.createElement('a');
         a.className = 'firefly firefly-link';
         a.href = 'https://www.hpntk.co/';
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
-        a.setAttribute('aria-label', 'HPNTK (opens in a new tab)');
+        a.setAttribute('aria-label', 'HPNTK');
         seedFly(a);
         addLabel(a, 'HPNTK');
         return a;
@@ -2451,9 +2459,7 @@
         el.className = 'firefly firefly-port';
         if (PORTFOLIO_URL) {
           el.href = PORTFOLIO_URL;
-          el.target = '_blank';
-          el.rel = 'noopener noreferrer';
-          el.setAttribute('aria-label', 'Portfolio (opens in a new tab)');
+          el.setAttribute('aria-label', 'Portfolio');
           seedFly(el);
           addLabel(el, 'PORTFOLIO');
           return el;
